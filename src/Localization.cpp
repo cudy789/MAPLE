@@ -29,7 +29,7 @@ void MeanLocalizationStrategy::MaxRateChange(const Pose_single& a, Pose_single& 
 
 bool MeanLocalizationStrategy::Compute(TagArray &fresh_poses, RobotPose &filtered_pose) {
     // Compute the mean of the global poses for each tag
-    Pose_single avg_filtered_pose;
+    Pose avg_filtered_pose;
     int num_poses = 0;
 
 
@@ -56,9 +56,14 @@ bool MeanLocalizationStrategy::Compute(TagArray &fresh_poses, RobotPose &filtere
             }
         }
 
+        // clear stale robot relative tag positions
+        filtered_pose.RelativeTags.ClearStale();
+
         // add mins to average
         for (const auto& pair: cam_pose_err){
-            avg_filtered_pose += pair.second->global;
+            AppLogger::Logger::Log("tags: " + to_string(*pair.second));
+            avg_filtered_pose += *pair.second;
+            filtered_pose.RelativeTags.AddTag(*pair.second);
             num_poses++;
         }
 
@@ -68,10 +73,10 @@ bool MeanLocalizationStrategy::Compute(TagArray &fresh_poses, RobotPose &filtere
     if (num_poses > 0) {
         avg_filtered_pose /= num_poses;
     } else{
-        avg_filtered_pose = filtered_pose.global;
+        avg_filtered_pose = filtered_pose;
     }
 
-    MaxRateChange(avg_filtered_pose, filtered_pose.global, 0.05, 0.05);
+    MaxRateChange(avg_filtered_pose.global, filtered_pose.global, 0.05, 0.05);
 
 //    AppLogger::Logger::Log("filtered pose: " + to_string(filtered_pose.global));
 //    if (num_poses > 0) return true;

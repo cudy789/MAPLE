@@ -50,7 +50,7 @@ public:
                 int unique = item["unique"].get<int>();
                 std::vector<double> transform = item["transform"].get<std::vector<double>>();
 
-                Eigen::Vector3d T_AG{transform[3], transform[7], transform[11]};
+                Eigen::Vector3d T_AG{transform[3] + (17.5482504 / 2), transform[7] + (8.0519016 / 2), transform[11]};
                 Eigen::Matrix3d R_AG{{transform[0], transform[1], transform[2]},
                                      {transform[4], transform[5], transform[6]},
                                      {transform[8], transform[9], transform[10]}};

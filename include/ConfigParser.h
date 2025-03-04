@@ -197,7 +197,7 @@ public:
                     Eigen::Vector3d T_total = {c_translation[1], -c_translation[0], c_translation[2]};
 
                     Eigen::Vector3d c_rotation = Eigen::Vector3d(it->second["rotation"].as<std::vector<double>>().data());
-                    Eigen::Matrix3d R_total = CreateRotationMatrix({-c_rotation[0], c_rotation[1], -c_rotation[2]});
+                    Eigen::Matrix3d R_total = CreateRotationMatrix({-c_rotation[0], c_rotation[1], -c_rotation[2]-90});
 
                     cam_p.emplace_back(CamParams{.name=c_name, .camera_id=c_id, .camera_playback_file=camera_playback_file,
                                                  .rx=c_rx, .ry=c_ry, .calibrate=c_calibrate,

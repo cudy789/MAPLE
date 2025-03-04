@@ -119,7 +119,8 @@ void WebServerWorker::Execute() {
                             ",\"z\": " + to_string(z) +
                             ",\"roll\": " + to_string(rpy[0]) +
                             ",\"pitch\": " + to_string(rpy[1]) +
-                            ",\"yaw\": " + to_string(rpy[2]) + "}";
+                            ",\"yaw\": " + to_string(rpy[2]) +
+                            "}";
 
                     mg_ws_send(conn, test_data.c_str(), test_data.size(), WEBSOCKET_OP_TEXT);
                 }
