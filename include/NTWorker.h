@@ -17,6 +17,10 @@
  * Other clients connected to the same NetworkTables server will see data being published at:
  * * MAPLE/location: double[pos_x, pos_y, pos_z] in meters
  * * MAPLE/orientation: double[roll, pitch, yaw] in degrees
+ * * MAPLE/robot_relative_tagid: int[tagid1, tagid2, ...]
+ * * MAPLE/robot_relative_x: double[tag1_dist_x, tag2_dist_x, ...]
+ * * MAPLE/robot_relative_y: double[tag1_dist_y, tag2_dist_y, ...]
+ * * MAPLE/robot_relative_yaw: double[tag1_angle_yaw, tag2_angle_yaw, ...]
  *
  * Compatible with NetworkTables 4.
  */
@@ -83,7 +87,7 @@ private:
     nt::IntegerArrayPublisher _robot_relative_tagid;
     nt::DoubleArrayPublisher _robot_relative_x;
     nt::DoubleArrayPublisher _robot_relative_y;
-    nt::DoubleArrayPublisher _robot_relative_theta;
+    nt::DoubleArrayPublisher _robot_relative_yaw;
 
     std::function<RobotPose()> _pose_callback;
 };

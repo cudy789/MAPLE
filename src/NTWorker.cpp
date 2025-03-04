@@ -12,7 +12,7 @@ NTWorker::NTWorker() :
     _robot_relative_tagid = _nt_table->GetIntegerArrayTopic("robot_relative_tagid").Publish();
     _robot_relative_x = _nt_table->GetDoubleArrayTopic("robot_relative_x").Publish();
     _robot_relative_y = _nt_table->GetDoubleArrayTopic("robot_relative_y").Publish();
-    _robot_relative_theta = _nt_table->GetDoubleArrayTopic("robot_relative_theta").Publish();
+    _robot_relative_yaw = _nt_table->GetDoubleArrayTopic("robot_relative_yaw").Publish();
 }
 
 NTWorker::NTWorker(int team_num) :  NTWorker() { _team_num=team_num; }
@@ -69,7 +69,7 @@ void NTWorker::Execute() {
     std::vector<long> rr_tagid;
     std::vector<double> rr_x;
     std::vector<double> rr_y;
-    std::vector<double> rr_theta;
+    std::vector<double> rr_yaw;
 
     for (const auto& tag_vec: new_pose.RelativeTags.data){
         if (!tag_vec.empty()){
@@ -77,7 +77,7 @@ void NTWorker::Execute() {
                 rr_tagid.push_back(t.tag_id);
                 rr_x.push_back(t.robot.T[0]);
                 rr_y.push_back(t.robot.T[1]);
-                rr_theta.push_back(RotationMatrixToRPY(t.robot.R)[2]);
+                rr_yaw.push_back(RotationMatrixToRPY(t.robot.R)[2]);
             }
         }
     }
@@ -85,6 +85,6 @@ void NTWorker::Execute() {
     _robot_relative_tagid.Set(rr_tagid);
     _robot_relative_x.Set(rr_x);
     _robot_relative_y.Set(rr_y);
-    _robot_relative_theta.Set(rr_theta);
+    _robot_relative_yaw.Set(rr_yaw);
 
 }

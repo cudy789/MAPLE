@@ -65,6 +65,18 @@ Pose data is available on the table **MAPLE** on topics **position** and **orien
     * - orientation
       - Vector of robot orientation roll, pitch, and yaw in degrees.
 
+    * - robot_relative_tagid
+      - Vector of detected robot relative tag IDs. No duplicate tag IDs. The best tag detection (lowest error) across all cameras.
+
+    * - robot_relative_x
+      - Vector of detected robot relative tag x distances, i.e. the distance from the robot center to the tag in the x axis. See :doc:`./configure` for axis conventions.
+
+    * - robot_relative_y
+      - Vector of detected robot relative tag y distances, i.e. the distance from the robot center to the tag in the y axis. See :doc:`./configure` for axis conventions.
+
+    * - robot_relative_yaw
+      - Vector of detected robot relative tag yaw angles, i.e. the rotation in degrees from robot forwards to tag forwards. 0 degrees means the robot is perfectly parallel to the tag. See :doc:`./configure` for axis conventions.
+
 
 Code examples
 ~~~~~~~~~~~~~~~~
