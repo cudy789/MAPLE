@@ -15,8 +15,8 @@ std::function<RobotPose()> CreateCallback(const std::vector<double>& pos_vals,
                                                            const std::vector<long>& tag_ids,
                                                            const std::vector<double>& tag_x,
                                                            const std::vector<double>& tag_y,
-                                                           const std::vector<double>& tag_theta){
-    return [pos_vals, tag_ids, tag_x, tag_y, tag_theta]() -> RobotPose {
+                                                           const std::vector<double>& tag_yaw){
+    return [pos_vals, tag_ids, tag_x, tag_y, tag_yaw]() -> RobotPose {
         RobotPose ret_val;
         ret_val.global.T = {pos_vals[0], pos_vals[1], pos_vals[2]};
 //        ret_val.RelativeTags.AddTag(Pose());
@@ -26,7 +26,7 @@ std::function<RobotPose()> CreateCallback(const std::vector<double>& pos_vals,
             new_tag.tag_id = (int)tag_ids[i];
             new_tag.robot.T[0] = tag_x[i];
             new_tag.robot.T[1] = tag_y[i];
-            new_tag.robot.R = CreateRotationMatrix({0, 0, tag_theta[i]});
+            new_tag.robot.R = CreateRotationMatrix({0, 0, tag_yaw[i]});
 
             ret_val.RelativeTags.AddTag(new_tag);
         }
@@ -66,7 +66,7 @@ TEST(NetworkTablesWorker, NTServerRobotRelativeTags){
     nt::IntegerArraySubscriber tag_id_sub = table->GetIntegerArrayTopic("robot_relative_tagid").Subscribe({});
     nt::DoubleArraySubscriber pos_x_sub = table->GetDoubleArrayTopic("robot_relative_x").Subscribe({});
     nt::DoubleArraySubscriber pos_y_sub = table->GetDoubleArrayTopic("robot_relative_y").Subscribe({});
-    nt::DoubleArraySubscriber pos_theta_sub = table->GetDoubleArrayTopic("robot_relative_theta").Subscribe({});
+    nt::DoubleArraySubscriber pos_yaw_sub = table->GetDoubleArrayTopic("robot_relative_yaw").Subscribe({});
 
 
     // Test that the worker can publish at least one message to the NetworkTables server
@@ -74,7 +74,7 @@ TEST(NetworkTablesWorker, NTServerRobotRelativeTags){
     std::vector<long> desired_tag_id = {1,2,3};
     std::vector<double> desired_tag_x = {5,5,5};
     std::vector<double> desired_tag_y = {7,8,9};
-    std::vector<double> desired_tag_theta = {0,90,180};
+    std::vector<double> desired_tag_yaw = {0,90,180};
 
     NTWorker nt_worker("127.0.0.1");
     nt_worker.RegisterPoseCallback(CreateCallback(
@@ -82,7 +82,7 @@ TEST(NetworkTablesWorker, NTServerRobotRelativeTags){
             desired_tag_id,
             desired_tag_x,
             desired_tag_y,
-            desired_tag_theta));
+            desired_tag_yaw));
 
     nt_worker.Start();
 
@@ -100,7 +100,7 @@ TEST(NetworkTablesWorker, NTServerRobotRelativeTags){
     std::vector<long> actual_tag_id = tag_id_sub.Get(); // get the latest value
     std::vector<double> actual_tag_x = pos_x_sub.Get(); // get the latest value
     std::vector<double> actual_tag_y = pos_y_sub.Get(); // get the latest value
-    std::vector<double> actual_tag_theta = pos_theta_sub.Get(); // get the latest value
+    std::vector<double> actual_tag_yaw = pos_yaw_sub.Get(); // get the latest value
     ASSERT_TRUE(actual_pos.size() == 3);
     for (int i=0; i < actual_pos.size(); i++){
         ASSERT_TRUE(actual_pos[i] == desired_pos[i]);
@@ -111,7 +111,7 @@ TEST(NetworkTablesWorker, NTServerRobotRelativeTags){
         ASSERT_TRUE(actual_tag_id[i] == desired_tag_id[i]);
         ASSERT_TRUE(actual_tag_x[i] == desired_tag_x[i]);
         ASSERT_TRUE(actual_tag_y[i] == desired_tag_y[i]);
-        ASSERT_TRUE(actual_tag_theta[i] == desired_tag_theta[i]);
+        ASSERT_TRUE(actual_tag_yaw[i] == desired_tag_yaw[i]);
     }
     AppLogger::Logger::Log("Server received correct robot relative tag data from NTWorker");
 
