@@ -240,39 +240,41 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
                 continue;
             }
 
-            // TODO rotation is not properly applied with camera extrinsic matrix positive pitch, going to offset below.
+            // ============= Global Frame =============
             Eigen::Matrix3d R_robot_global_unordered = Pose_AG.R * ((R_tag_global_fix * R_tag_camera_raw.transpose()));
             Eigen::Vector3d T_robot_global_unordered = Pose_AG.T - _c_params.R_camera_robot.transpose() * (T_tag_global_fix * (
                        _c_params.R_camera_robot * Pose_AG.R * ((R_tag_global_fix * R_tag_camera_raw.transpose()))
                     ) * T_tag_camera_raw + _c_params.R_camera_robot * _c_params.T_camera_robot);
-            // Changes to translations/rotations
-            // X [good]
-            // Y [good]
-            // Z [good]
-            // Roll [good]
-            // Pitch [good]
-            // Yaw [good]
 
-            // Tag variations:
-            // X [good]
-            // Y [good]
-            // Z [good]
-            // Roll
-            // Pitch [BAD!] applying roll to x and z?
-            // Yaw
             Eigen::Vector3d T_robot_global = {T_robot_global_unordered[0], T_robot_global_unordered[1], T_robot_global_unordered[2]};
 
             Eigen::Vector3d R_robot_ordered_vec = RotationMatrixToRPY(R_robot_global_unordered);
             R_robot_ordered_vec[0] += 90;
-            if (R_robot_ordered_vec[0] >=180) R_robot_ordered_vec[0] -= 180; //TODO this seems to be working! need to setup testing pipeline with more generated examples! and also test on field!
-
+            if (R_robot_ordered_vec[0] >=180) R_robot_ordered_vec[0] -= 180;
             Eigen::Vector3d c_extrinsic_rotation = RotationMatrixToRPY(_c_params.R_camera_robot);
             Eigen::Matrix3d R_robot_global = CreateRotationMatrix({R_robot_ordered_vec[1]-c_extrinsic_rotation[0], R_robot_ordered_vec[0]-c_extrinsic_rotation[1], R_robot_ordered_vec[2]-c_extrinsic_rotation[2]});
-//            Eigen::Matrix3d R_robot_global = R_robot_global_unordered;
 
-            // Calculate the camera (robot) pose in the global frame
-//            Eigen::Matrix3d R_global_to_camera = Pose_AG.R * R_tag_to_camera.transpose();
-//            Eigen::Vector3d T_global_to_camera = Pose_AG.T - (R_global_to_camera * T_tag_to_camera);
+            // ============= Robot Frame =============
+
+//            Eigen::Matrix3d R_robot = Pose_AG.R.transpose() * R_robot_global;
+//            Eigen::Vector3d T_robot = Pose_AG.T + _c_params.R_camera_robot * T_tag_camera_raw + _c_params.T_camera_robot;
+
+            Eigen::Matrix3d R_robot_unordered = ((R_tag_global_fix * R_tag_camera_raw.transpose()));
+            Eigen::Vector3d T_robot_unordered = _c_params.R_camera_robot.transpose() * (T_tag_global_fix * (
+                    _c_params.R_camera_robot * ((R_tag_global_fix * R_tag_camera_raw.transpose()))
+            ) * T_tag_camera_raw + _c_params.R_camera_robot * _c_params.T_camera_robot);
+
+            Eigen::Vector3d T_robot = {T_robot_unordered[1], -T_robot_unordered[0], T_robot_unordered[2]};
+
+            Eigen::Vector3d R_robot_robot_ordered_vec = RotationMatrixToRPY(R_robot_unordered);
+            R_robot_robot_ordered_vec[0] += 90;
+            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
+
+            R_robot_robot_ordered_vec[2] += 180;
+            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
+            //Eigen::Vector3d c_extrinsic_rotation = RotationMatrixToRPY(_c_params.R_camera_robot);
+            Eigen::Matrix3d R_robot = CreateRotationMatrix({R_robot_robot_ordered_vec[1]-c_extrinsic_rotation[0], R_robot_robot_ordered_vec[0]-c_extrinsic_rotation[1], R_robot_robot_ordered_vec[2]-c_extrinsic_rotation[2]});
+
 
 
             // ==================== Now make the Pose_t object ====================
@@ -285,11 +287,11 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
             new_tag.tag.R = Eigen::Matrix3d::Constant(0);
             new_tag.tag.T = Eigen::Vector3d::Constant(0);
             // Camera frame
-//            new_tag.camera.R = R_tag_camera;
-//            new_tag.camera.T = T_tag_camera_raw;
+            new_tag.camera.R = R_tag_camera_raw;
+            new_tag.camera.T = T_tag_camera_raw;
 //            // Robot frame
-//            new_tag.robot.R = R_camera_robot;
-//            new_tag.robot.T = T_camera_robot;
+            new_tag.robot.R = R_robot;
+            new_tag.robot.T = T_robot;
             // Global frame
             new_tag.global.R = R_robot_global;
             new_tag.global.T = T_robot_global;

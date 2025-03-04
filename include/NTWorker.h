@@ -4,6 +4,7 @@
 #include "Pose.h"
 
 #include <networktables/DoubleArrayTopic.h>
+#include <networktables/IntegerArrayTopic.h>
 #include <networktables/NetworkTable.h>
 #include <networktables/NetworkTableInstance.h>
 
@@ -39,6 +40,13 @@ public:
     NTWorker(std::string hostname);
 
     /**
+     * @brief Create the worker, connect to NetworkTables via hostname string.
+     * @param hostname The hostname with the NetworkTables server running.
+     * @param ntport4 The port which the NetworkTables 4 server is running on.
+     */
+    NTWorker(const std::string& hostname, int ntport4);
+
+    /**
      * @brief Register the pose callback function that is periodically called to retrieve the latest pose data to publish
      * to NetworkTables.
      * @param pose_callback The callback function which returns a RobotPose object to be parsed and published to NetworkTables.
@@ -64,12 +72,18 @@ private:
 
     int _team_num = -1;
     std::string _hostname = "127.0.0.1";
+    int _ntport4 = NT_DEFAULT_PORT4;
 
     nt::NetworkTableInstance _nt_instance;
     std::shared_ptr<nt::NetworkTable> _nt_table;
 
     nt::DoubleArrayPublisher _position;
     nt::DoubleArrayPublisher _orientation;
+
+    nt::IntegerArrayPublisher _robot_relative_tagid;
+    nt::DoubleArrayPublisher _robot_relative_x;
+    nt::DoubleArrayPublisher _robot_relative_y;
+    nt::DoubleArrayPublisher _robot_relative_theta;
 
     std::function<RobotPose()> _pose_callback;
 };

@@ -46,7 +46,7 @@ def gen_positions_from_waypoints(lines):
         p_pitch = np.hstack((p_pitch, np.linspace(float(lines[i-1][5]), float(lines[i][5]), n_frames)))
         p_yaw = np.hstack((p_yaw, np.linspace(float(lines[i-1][6]), float(lines[i][6]), n_frames)))
 
-    positions = np.stack([p_x, p_y, p_z, p_roll, p_pitch, p_yaw], axis=1)
+    positions = np.stack([p_x, p_y, p_z, p_roll, p_pitch, p_yaw-90], axis=1)
 
     return positions
 
@@ -61,6 +61,9 @@ def populate_apriltags(fmap_file):
         transform = np.array(tag["transform"]).reshape((4,4))
         translation = transform[:3,-1].reshape(-1)
         rotation = R.from_matrix(transform[:3, :3]).as_matrix()
+
+        translation[0] += (17.5482504 / 2)
+        translation[1] += (8.0519016 / 2)
 
         b_tag = p.loadURDF("./at_objs/at.urdf", translation, R.from_matrix(rotation).as_quat())
 

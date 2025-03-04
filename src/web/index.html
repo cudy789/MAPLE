@@ -153,7 +153,7 @@
 
                 // // Update robot's position & rotation
                 robot_group.position.set(-data.y, data.z, -data.x);
-                robot_group.rotation.set(data.pitch / 180 * Math.PI + Math.PI, -1*(data.yaw / 180 * Math.PI) + Math.PI / 2, data.roll / 180 * Math.PI + Math.PI/2);
+                robot_group.rotation.set(data.pitch / 180 * Math.PI + Math.PI, -1*(data.yaw / 180 * Math.PI) + Math.PI, data.roll / 180 * Math.PI + Math.PI/2);
 
                 infoDiv.textContent = `x: ${data.x.toFixed(2)}, y: ${data.y.toFixed(2)}, z: ${data.z.toFixed(2)} \n` +
                     `roll: ${(data.roll).toFixed(2)}, pitch: ${(data.pitch).toFixed(2)}, yaw: ${(data.yaw).toFixed(2)}`;

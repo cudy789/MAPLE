@@ -103,22 +103,23 @@ struct Pose{
         return os;
     }
 
-};
-
-/**
- * @brief A Pose object that describes the robots location in the global frame. Only the global Pose_single object has
- * valid pose data.
- */
-struct RobotPose: public Pose {
-    RobotPose() = default;
-
-    explicit RobotPose(const Pose_single& global_pose) {
-        this->global = global_pose;
+    Pose &operator+=(const Pose &o) {
+        this->tag += o.tag;
+        this->camera += o.camera;
+        this->robot += o.robot;
+        this->global += o.global;
+        this->err += o.err;
+        return *this;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const RobotPose& o_p) {
-        os << o_p.global;
-        return os;
+    template<typename T>
+    Pose operator/=(T val) {
+        this->tag /= val;
+        this->camera /= val;
+        this->robot /= val;
+        this->global /= val;
+        this->err /= val;
+        return *this;
     }
 
 };
@@ -190,3 +191,22 @@ struct TagArray{
     size_t _num_tags = 0;
 };
 
+/**
+ * @brief A Pose object that describes the robots location in the global frame. Only the global Pose_single object has
+ * valid pose data.
+ */
+struct RobotPose: public Pose {
+    RobotPose() = default;
+
+    TagArray RelativeTags;
+
+    explicit RobotPose(const Pose_single& global_pose) {
+        this->global = global_pose;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const RobotPose& o_p) {
+        os << o_p.global;
+        return os;
+    }
+
+};
