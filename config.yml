@@ -2,10 +2,12 @@
 
 team_number: -1
 pose_logging: true
+fmap_file: ../fmap/frc2025r2.fmap
+
 cameras:
-  FRONT_LEFT:
+  FRONT_CENTER:
     camera_id: 0
-    camera_playback_file: ../../test/integration/sim_tests/sim_output/2025-triple-cam-red1_front-left.mp4
+    camera_playback_file: ../test/integration/sim_tests/sim_output/2025-triple-cam-pathplanner_front-center.mp4
     rx: 640
     ry: 480
 
@@ -18,55 +20,55 @@ cameras:
     cy: 240
 
     # Camera x, y, z location on the robot, in meters
-    translation: [ -0.25, 0, 1 ]
+    translation: [ 0, 0, 1 ]
 
     # Camera roll, pitch, yaw orientation on the robot, in degrees
-    rotation: [ 0, -60, -35 ]
+    rotation: [ 0, -30, 0 ]
 
     fps: 60.0
     exposure: 1
-  FRONT_RIGHT:
-    camera_id: 2
-    camera_playback_file: test/integration/sim_tests/sim_output/2025-triple-cam-red1_front-right.mp4
-    rx: 640
-    ry: 480
-
-    # focal length (in pixels)
-    fx: 428
-    fy: 428
-
-    # center of the camera image (in pixels)
-    cx: 320
-    cy: 240
-
-    # Camera x, y, z location on the robot, in meters
-    translation: [ 0.25, 0, 1 ]
-
-    # Camera roll, pitch, yaw orientation on the robot, in degrees
-    rotation: [ 0, -60, 35 ]
-
-    fps: 60.0
-    exposure: 1
-
-  REAR_CENTER:
-    camera_id: 4
-    camera_playback_file: test/integration/sim_tests/sim_output/2025-triple-cam-red1_rear-center.mp4
-    rx: 640
-    ry: 480
-
-    # focal length (in pixels)
-    fx: 428
-    fy: 428
-
-    # center of the camera image (in pixels)
-    cx: 320
-    cy: 240
-
-    # Camera x, y, z location on the robot, in meters
-    translation: [ 0, 0, 1.25 ]
-
-    # Camera roll, pitch, yaw orientation on the robot, in degrees
-    rotation: [ 0, 15, 180 ]
-
-    fps: 60.0
-    exposure: 1
+#  FRONT_RIGHT:
+#    camera_id: 2
+#    camera_playback_file: ../test/integration/sim_tests/sim_output/2025-triple-cam-pathplanner_front-right.mp4
+#    rx: 640
+#    ry: 480
+#
+#    # focal length (in pixels)
+#    fx: 428
+#    fy: 428
+#
+#    # center of the camera image (in pixels)
+#    cx: 320
+#    cy: 240
+#
+#    # Camera x, y, z location on the robot, in meters
+#    translation: [ 0.25, 0, 1 ]
+#
+#    # Camera roll, pitch, yaw orientation on the robot, in degrees
+#    rotation: [ 0, -60, 35 ]
+#
+#    fps: 60.0
+#    exposure: 1
+#
+#  REAR_CENTER:
+#    camera_id: 4
+#    camera_playback_file: ../test/integration/sim_tests/sim_output/2025-triple-cam-pathplanner_rear-center.mp4
+#    rx: 640
+#    ry: 480
+#
+#    # focal length (in pixels)
+#    fx: 428
+#    fy: 428
+#
+#    # center of the camera image (in pixels)
+#    cx: 320
+#    cy: 240
+#
+#    # Camera x, y, z location on the robot, in meters
+#    translation: [ 0, 0, 1.25 ]
+#
+#    # Camera roll, pitch, yaw orientation on the robot, in degrees
+#    rotation: [ 0, 15, 180 ]
+#
+#    fps: 60.0
+#    exposure: 1

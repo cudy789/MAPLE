@@ -28,6 +28,7 @@ FILE_COUNT=1
 set -e  # exit on error
 #for t in test/integration/sim_tests/maple_configs/*.yml; do
 for t in test/integration/sim_tests/maple_configs/2025-triple-cam-pathplanner.yml; do
+#for t in test/integration/sim_tests/maple_configs/2024-dual-cam-center-field-rotation.yml; do
 
   # Run MAPLE
   IFS="/" read -ra path_array <<< "$t"
