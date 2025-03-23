@@ -26,8 +26,8 @@ echo "Run simulation integration tests"
 NUM_FILES=$(ls test/integration/sim_tests/maple_configs/*.yml -1 | wc -l)
 FILE_COUNT=1
 set -e  # exit on error
-#for t in test/integration/sim_tests/maple_configs/*.yml; do
-for t in test/integration/sim_tests/maple_configs/2025-triple-cam-pathplanner.yml; do
+for t in test/integration/sim_tests/maple_configs/*.yml; do
+#for t in test/integration/sim_tests/maple_configs/2025-triple-cam-pathplanner.yml; do
 
   # Run MAPLE
   IFS="/" read -ra path_array <<< "$t"

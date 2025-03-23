@@ -61,7 +61,7 @@ bool MeanLocalizationStrategy::Compute(TagArray &fresh_poses, RobotPose &filtere
 
         // add mins to average
         for (const auto& pair: cam_pose_err){
-            AppLogger::Logger::Log("tags: " + to_string(*pair.second));
+//            AppLogger::Logger::Log("tags: " + to_string(*pair.second));
             avg_filtered_pose += *pair.second;
             filtered_pose.RelativeTags.AddTag(*pair.second);
             num_poses++;
