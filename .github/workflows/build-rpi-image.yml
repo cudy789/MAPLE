@@ -2,11 +2,10 @@
 name: Build Raspberry Pi Image
 
 on:
-  push:
-    branches: [ "main" ]
-
-  pull_request:
-    branches: [ "main" ]
+  workflow_run:
+    workflows: [ Build Docker images, Build Docker images weekly ]
+    types:
+      - completed
 
 jobs:
   build-rpi-image:
