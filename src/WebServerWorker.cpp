@@ -1,4 +1,5 @@
 #include "WebServerWorker.h"
+#include "nlohmann/json.hpp"
 
 WebServerWorker::WebServerWorker(unsigned short port) :
         Worker{"Webserver worker", true, 30.0},  // Call Worker constructor
@@ -53,10 +54,47 @@ void WebServerWorker::Init() {
            [](mg_connection *conn, int ev, void *ev_data) {
                if (ev == MG_EV_HTTP_MSG) {
                    struct mg_http_message *hm = (struct mg_http_message *) ev_data;
-                   struct mg_http_serve_opts opts = { .root_dir = "./web/" };
+                   if (mg_match(hm->uri, mg_str("/api/get-config"), NULL)) {
+                       AppLogger::Logger::Log("Trying to get config for webpage editor");
+                       std::ifstream file("../config.yml");
+                       if (!file) {
+                           mg_http_reply(conn, 500, "Content-Type: text/plain\r\n", "Failed to read config file");
+                           return;
+                       }
+                       std::stringstream buffer;
+                       buffer << file.rdbuf();
+                       mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%s", buffer.str().c_str());
+                   } else if (mg_match(hm->uri, mg_str("/api/save-config"), NULL)) {
+                       AppLogger::Logger::Log("Trying save get config from webpage editor");
 
-                   mg_http_serve_dir(conn, hm, &opts);
-                   AppLogger::Logger::Log("Client connected to viewer");
+                       // Parse the incoming JSON data
+                       nlohmann::json requestData = nlohmann::json::parse(std::string(hm->body.buf, hm->body.len));
+
+                       // Extract the configuration data and decode it correctly
+                       std::string config_data = requestData.at("config").get<std::string>();
+
+                       std::ofstream outfile("../config.yml");
+                       if (!outfile) {
+                           mg_http_reply(conn, 500, "Content-Type: text/plain\r\n", "Failed to save config file");
+                           AppLogger::Logger::Log("Failed to save config file", AppLogger::SEVERITY::ERROR);
+                           return;
+                       }
+                       outfile << config_data;
+                       outfile.close();
+                        AppLogger::Logger::Log("Received new config data: " + config_data);
+
+                       mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "Configuration saved successfully");
+                       AppLogger::Logger::Log("Successfully saved config");
+
+//                       exit(1);
+                       std::raise(27);
+                   }
+                   else {
+                       struct mg_http_serve_opts opts = {.root_dir = "./web/"};
+
+                       mg_http_serve_dir(conn, hm, &opts);
+                       AppLogger::Logger::Log("Client connected to viewer");
+                   }
                }
            },
            this);

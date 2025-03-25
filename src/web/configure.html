@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Configuration Editor</title>
+    <link rel="stylesheet" href="codemirror.css">
+    <script src="js/codemirror.js"></script>
+    <script src="js/yaml.js"></script>
+    <script src="js/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .CodeMirror {
+            border: 1px solid #ccc;
+            height: 400px;
+        }
+        #saveButton {
+            margin-top: 10px;
+            padding: 8px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #saveButton:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+<h1>Configuration Editor</h1>
+<textarea id="editor"></textarea>
+<button id="saveButton">Save & Restart</button>
+
+<script>
+    const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+        lineNumbers: true,
+        mode: 'yaml',
+        theme: 'default'
+    });
+
+    // Load configuration
+    async function loadConfig() {
+        try {
+            const response = await axios.get('/api/get-config');
+            editor.setValue(response.data);
+        } catch (error) {
+            alert("Failed to load configuration.");
+            console.error(error);
+        }
+    }
+
+    // Save configuration
+    document.getElementById('saveButton').addEventListener('click', async () => {
+        const configData = editor.getValue();
+
+        const confirmed = confirm("Are you sure you want to save and restart MAPLE?");
+        if (!confirmed) return;  // Exit if user cancels
+
+        try {
+            await axios.post('/api/save-config', { config: configData });
+        } catch (error) {
+            alert("Failed to save configuration.");
+            console.error(error);
+        }
+    });
+
+    // Load the config when the page loads
+    window.onload = loadConfig;
+</script>
+</body>
+</html>

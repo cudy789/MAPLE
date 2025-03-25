@@ -1,12 +1,22 @@
 #include "MAPLE.h"
 #include "CalibrationCamWorker.h"
 
+
 void MAPLE::Setup(const std::string& config_file) {
     AppLogger::Logger::SetVerbosity(AppLogger::INFO);
     AppLogger::Logger::Log("Starting Multicamera Apriltag Pose Localization and Estimation (MAPLE)", AppLogger::INFO);
 
     // Register signal handler
     signal(SIGINT, MAPLE::MAPLE::StaticSignalCallback);
+    signal(27, MAPLE::MAPLE::StaticSignalCallback);
+
+    _config_file = config_file;
+
+    SetupHelper(config_file);
+
+}
+
+void MAPLE::SetupHelper(const std::string& config_file){
 
     // Parse map and configuration files
     _params = ConfigParser::ParseConfig(config_file);
@@ -45,6 +55,7 @@ void MAPLE::Setup(const std::string& config_file) {
             _cam_workers_t.emplace_back(this_cam_worker);
         }
     }
+
 }
 
 MAPLE &MAPLE::GetInstance() {
@@ -74,22 +85,27 @@ RobotPose MAPLE::GetRobotPose() {
 
 void MAPLE::Join(){
     // Wait until the tag detection threads are finished
-    for (Worker* w: _cam_workers_t){
-        w->Join();
-        delete w;
-    }
-    AppLogger::Logger::Log("All workers finished");
+    bool is_finished = false;
+    do{
+        _is_finished_sem.acquire();
+        is_finished = _is_finished;
+        _is_finished_sem.release();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    } while(!is_finished);
 }
 
-bool MAPLE::Stop(){
-    bool all_stopped = true;
-    for (Worker* w: _workers_t){
-        all_stopped = w->Stop();
+void MAPLE::Stop(){
+    for (Worker* t: _workers_t){
+        t->Stop();
+        delete t;
     }
-    for (Worker* w: _cam_workers_t){
-        all_stopped = w->Stop();
+    _workers_t.clear();
+    for (Worker* t: _cam_workers_t){
+        t->Stop();
+        delete t;
     }
-    return all_stopped;
+    _cam_workers_t.clear();
+    AppLogger::Logger::Log("Stopped all worker threads");
 }
 
 void MAPLE::StaticSignalCallback(int signum) {
@@ -97,14 +113,15 @@ void MAPLE::StaticSignalCallback(int signum) {
 }
 
 void MAPLE::SignalCallback(int signum) {
-    AppLogger::Logger::Log("Caught CTRL-C, exiting...");
-    for (Worker* t: _workers_t){
-        t->Stop();
-        delete t;
+    AppLogger::Logger::Log("Caught signal interrupt, handling...", AppLogger::SEVERITY::WARNING);
+    Stop();
+
+    if (signum == 27){
+        AppLogger::Logger::Log("Restarting MAPLE", AppLogger::SEVERITY::WARNING);
+        SetupHelper(_config_file);
+        Start();
+    } else {
+        AppLogger::Logger::Log("Caught CTRL-C, exiting...", AppLogger::SEVERITY::WARNING);
+        exit(signum);
     }
-    for (Worker* t: _cam_workers_t){
-        t->Stop();
-        delete t;
-    }
-    exit(signum);
 }

@@ -30,6 +30,7 @@ void TDCamWorker::Init() {
 }
 
 void TDCamWorker::Finish() {
+    AppLogger::Logger::Log("in the tdcamworker finish function");
     CloseCap();
 }
 

@@ -91,11 +91,17 @@ public:
     /**
      * @brief Ensure the thread has stopped execution, then delete the thread.
      */
-    virtual ~Worker(){
-        if (_stop_sem.try_acquire_for(std::chrono::duration<ulong, std::milli>(3000))){
-            if (!_stop) Stop();
+    ~Worker(){
+        _stop_sem.acquire();
+
+        if (!_stop){
+            _stop_sem.release();
+            Stop();
+        } else{
             _stop_sem.release();
         }
+
+        _t_worker->join();
         delete _t_worker;
     }
     /**
@@ -166,9 +172,22 @@ public:
         _stop_sem.release();
         _interrupted_sem.release();
         _stay_alive_sem.release();
-        Join();
+        while (!IsFinished()){
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            AppLogger::Logger::Log("in worker stop function, waiting for " + GetName() + " to finish, stop=" + std::to_string(_stop));
+        }
+//        AppLogger::Logger::Log("in worker stop, worker finished");
+//        Join();
         return true;
     };
+
+    bool IsFinished(){
+        _is_finished_sem.acquire();
+        bool is_finished = _is_finished;
+        _is_finished_sem.release();
+        return is_finished;
+    }
+
     /**
      * @brief Block until the worker finishes execution.
      */
@@ -217,6 +236,9 @@ protected:
      * This function should never block. No timeouts are implemented to detect loop overrun.
      */
     virtual void Finish() {
+        _is_finished_sem.acquire();
+        _is_finished = true;
+        _is_finished_sem.release();
         AppLogger::Logger::Log(_thread_name + " exited");
     };
     std::thread* _t_worker{};
@@ -229,6 +251,9 @@ private:
     bool _interrupted = false;
     std::binary_semaphore _interrupted_sem{1};
     double _exec_freq = 100.0;
+
+    bool _is_finished = false;
+    std::binary_semaphore _is_finished_sem{1};
 
     double _measure_exec_freq{};
     std::binary_semaphore _exec_freq_sem{1};
