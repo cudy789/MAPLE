@@ -135,9 +135,13 @@
     camera.position.z = 2;
     controls.update();
 
+
     // Webpage coord display
     const infoDiv = document.getElementById('info');
     const socket = new WebSocket(webSocketUrl);
+
+    infoDiv.setAttribute('style', 'white-space: pre;');
+
 
     socket.onopen = () => {
         console.log('WebSocket connection established');
@@ -155,8 +159,9 @@
                 robot_group.position.set(-data.y, data.z, -data.x);
                 robot_group.rotation.set(data.pitch / 180 * Math.PI + Math.PI, -1*(data.yaw / 180 * Math.PI) + Math.PI, data.roll / 180 * Math.PI + Math.PI/2);
 
-                infoDiv.textContent = `x: ${data.x.toFixed(2)}, y: ${data.y.toFixed(2)}, z: ${data.z.toFixed(2)} \n` +
-                    `roll: ${(data.roll).toFixed(2)}, pitch: ${(data.pitch).toFixed(2)}, yaw: ${(data.yaw).toFixed(2)}`;
+                infoDiv.textContent = `Global position - x: ${data.x.toFixed(2)}, y: ${data.y.toFixed(2)}, z: ${data.z.toFixed(2)} ` +
+                    `roll: ${(data.roll).toFixed(2)}, pitch: ${(data.pitch).toFixed(2)}, yaw: ${(data.yaw).toFixed(2)} \n` +
+                    `Robot relative tag position ${data.rob_rel_id} - x: $ ${data.rob_rel_x.toFixed(2)}, y: ${data.rob_rel_y.toFixed(2)}, z: ${data.rob_rel_z.toFixed(2)}, yaw: ${data.rob_rel_yaw.toFixed(2)}`;
             }
         } catch (error) {
             console.error('Error parsing WebSocket message:', error);
