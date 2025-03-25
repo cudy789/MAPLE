@@ -13,6 +13,13 @@ NTWorker::NTWorker() :
     _robot_relative_x = _nt_table->GetDoubleArrayTopic("robot_relative_x").Publish();
     _robot_relative_y = _nt_table->GetDoubleArrayTopic("robot_relative_y").Publish();
     _robot_relative_yaw = _nt_table->GetDoubleArrayTopic("robot_relative_yaw").Publish();
+
+    _camera_relative_tagid = _nt_table->GetIntegerArrayTopic("camera_relative_tagid").Publish();
+    _camera_relative_x = _nt_table->GetDoubleArrayTopic("camera_relative_x").Publish();
+    _camera_relative_y = _nt_table->GetDoubleArrayTopic("camera_relative_y").Publish();
+    _camera_relative_yaw = _nt_table->GetDoubleArrayTopic("camera_relative_yaw").Publish();
+
+
 }
 
 NTWorker::NTWorker(int team_num) :  NTWorker() { _team_num=team_num; }
@@ -86,5 +93,28 @@ void NTWorker::Execute() {
     _robot_relative_x.Set(rr_x);
     _robot_relative_y.Set(rr_y);
     _robot_relative_yaw.Set(rr_yaw);
+
+
+    // Publish robot relative tags
+    std::vector<long> cr_tagid;
+    std::vector<double> cr_x;
+    std::vector<double> cr_y;
+    std::vector<double> cr_yaw;
+
+    for (const auto& tag_vec: new_pose.RelativeTags.data){
+        if (!tag_vec.empty()){
+            for (const auto& t: tag_vec){
+                cr_tagid.push_back(t.tag_id);
+                cr_x.push_back(t.camera.T[0]);
+                cr_y.push_back(t.camera.T[1]);
+                cr_yaw.push_back(RotationMatrixToRPY(t.camera.R)[2]);
+            }
+        }
+    }
+
+    _camera_relative_tagid.Set(cr_tagid);
+    _camera_relative_x.Set(cr_x);
+    _camera_relative_y.Set(cr_y);
+    _camera_relative_yaw.Set(cr_yaw);
 
 }
