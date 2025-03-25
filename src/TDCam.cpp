@@ -256,15 +256,12 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
 
             // ============= Robot Frame =============
 
-//            Eigen::Matrix3d R_robot = Pose_AG.R.transpose() * R_robot_global;
-//            Eigen::Vector3d T_robot = Pose_AG.T + _c_params.R_camera_robot * T_tag_camera_raw + _c_params.T_camera_robot;
-
             Eigen::Matrix3d R_robot_unordered = ((R_tag_global_fix * R_tag_camera_raw.transpose()));
-            Eigen::Vector3d T_robot_unordered = _c_params.R_camera_robot.transpose() * (T_tag_global_fix * (
-                    _c_params.R_camera_robot * ((R_tag_global_fix * R_tag_camera_raw.transpose()))
-            ) * T_tag_camera_raw + _c_params.R_camera_robot * _c_params.T_camera_robot);
 
-            Eigen::Vector3d T_robot = {T_robot_unordered[1], -T_robot_unordered[0], T_robot_unordered[2]};
+
+            Eigen::Vector3d T_robot_unordered = (_c_params.R_camera_robot.transpose() * T_tag_camera_raw) + _c_params.T_camera_robot;
+
+            Eigen::Vector3d T_robot = {-T_robot_unordered[1], T_robot_unordered[2], T_robot_unordered[0]};
 
             Eigen::Vector3d R_robot_robot_ordered_vec = RotationMatrixToRPY(R_robot_unordered);
             R_robot_robot_ordered_vec[0] += 90;
@@ -289,7 +286,7 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
             // Camera frame
             new_tag.camera.R = R_tag_camera_raw;
             new_tag.camera.T = T_tag_camera_raw;
-//            // Robot frame
+            // Robot frame
             new_tag.robot.R = R_robot;
             new_tag.robot.T = T_robot;
             // Global frame

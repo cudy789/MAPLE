@@ -113,14 +113,50 @@ void WebServerWorker::Execute() {
                     double z = latest_pose.global.T[2];
                     Eigen::Vector3d rpy = RotationMatrixToRPY(latest_pose.global.R);
 
+                    // Publish robot relative tags
+                    std::vector<long> rr_tagid;
+                    std::vector<double> rr_x;
+                    std::vector<double> rr_y;
+                    std::vector<double> rr_z;
+                    std::vector<double> rr_yaw;
+
+                    for (const auto& tag_vec: latest_pose.RelativeTags.data){
+                        if (!tag_vec.empty()){
+                            for (const auto& t: tag_vec){
+                                rr_tagid.push_back(t.tag_id);
+                                rr_x.push_back(t.robot.T[0]);
+                                rr_y.push_back(t.robot.T[1]);
+                                rr_z.push_back(t.robot.T[2]);
+                                rr_yaw.push_back(RotationMatrixToRPY(t.robot.R)[2]);
+                            }
+                        }
+                    }
+
                     std::string test_data =
                             "{\"x\": " + to_string(x) +
                             ",\"y\": " + to_string(y) +
                             ",\"z\": " + to_string(z) +
                             ",\"roll\": " + to_string(rpy[0]) +
                             ",\"pitch\": " + to_string(rpy[1]) +
-                            ",\"yaw\": " + to_string(rpy[2]) +
-                            "}";
+                            ",\"yaw\": " + to_string(rpy[2]);
+                    if (!rr_tagid.empty()){
+                        test_data +=
+                                 ",\"rob_rel_id\": " + to_string(rr_tagid[0]) +
+                                 ",\"rob_rel_x\": " + to_string(rr_x[0]) +
+                                 ",\"rob_rel_y\": " + to_string(rr_y[0]) +
+                                 ",\"rob_rel_z\": " + to_string(rr_z[0]) +
+                                 ",\"rob_rel_yaw\": " + to_string(rr_yaw[0]) +
+                                 "}";
+                    } else{
+
+                        test_data +=
+                                ",\"rob_rel_id\": -1"
+                                ",\"rob_rel_x\": 0"
+                                ",\"rob_rel_y\": 0"
+                                ",\"rob_rel_z\": 0"
+                                ",\"rob_rel_yaw\": 0"
+                                "}";
+                    }
 
                     mg_ws_send(conn, test_data.c_str(), test_data.size(), WEBSOCKET_OP_TEXT);
                 }
