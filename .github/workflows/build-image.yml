@@ -4,8 +4,6 @@ name: Build Docker images
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build-docker-image-ARM64:
