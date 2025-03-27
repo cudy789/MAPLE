@@ -259,9 +259,25 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
             Eigen::Matrix3d R_robot_unordered = ((R_tag_global_fix * R_tag_camera_raw.transpose()));
 
 
-            Eigen::Vector3d T_robot_unordered = (_c_params.R_camera_robot.transpose() * T_tag_camera_raw) + _c_params.T_camera_robot;
+//            Eigen::Vector3d T_robot_unordered = (_c_params.R_camera_robot.transpose() * T_tag_camera_raw) + _c_params.T_camera_robot;
+//
+//            Eigen::Vector3d T_robot = {-T_robot_unordered[1], T_robot_unordered[2], T_robot_unordered[0]};
+            Eigen::Vector3d cam_rpy_raw = RotationMatrixToRPY(_c_params.R_camera_robot);
+            cam_rpy_raw[2] += 90;
+            cam_rpy_raw[2] *= -1;
+            //                                base dist (x)             offset center of robot  (yaw * y dist)                                 account for dependent axis (pitch * y dist)
+            Eigen::Vector3d T_robot = {T_tag_camera_raw[0] - sin(Deg2Rad(cam_rpy_raw[2])) * T_tag_camera_raw[2] + sin(Deg2Rad(cam_rpy_raw[1])) * T_tag_camera_raw[2],
+            //                                base dist (y)             offset center of robot  (pitch * z dist)                               account for dependent axis (yaw * x dist)
+                                       T_tag_camera_raw[2] - sin(Deg2Rad(cam_rpy_raw[1])) * T_tag_camera_raw[1] + sin(Deg2Rad(cam_rpy_raw[2])) * T_tag_camera_raw[0],
+                                       T_tag_camera_raw[1]
+            };
 
-            Eigen::Vector3d T_robot = {-T_robot_unordered[1], T_robot_unordered[2], T_robot_unordered[0]};
+            T_robot[0] += -_c_params.T_camera_robot[1];
+            T_robot[1] += _c_params.T_camera_robot[0];
+            T_robot[2] += _c_params.T_camera_robot[2];
+
+            AppLogger::Logger::Log("cam_rpy_raw: " + to_string(cam_rpy_raw));
+            AppLogger::Logger::Log("T_tag_camera_raw: " + to_string(T_tag_camera_raw));
 
             Eigen::Vector3d R_robot_robot_ordered_vec = RotationMatrixToRPY(R_robot_unordered);
             R_robot_robot_ordered_vec[0] += 90;
