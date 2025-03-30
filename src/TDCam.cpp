@@ -279,15 +279,23 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
             AppLogger::Logger::Log("cam_rpy_raw: " + to_string(cam_rpy_raw));
             AppLogger::Logger::Log("T_tag_camera_raw: " + to_string(T_tag_camera_raw));
 
-            Eigen::Vector3d R_robot_robot_ordered_vec = RotationMatrixToRPY(R_robot_unordered);
-            R_robot_robot_ordered_vec[0] += 90;
-            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
+//            Eigen::Vector3d R_robot_robot_ordered_vec = RotationMatrixToRPY(R_robot_unordered);
+//            R_robot_robot_ordered_vec[0] += 90;
+//            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
+//
+//            R_robot_robot_ordered_vec[2] += 180;
+//            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
+//
+//            //Eigen::Vector3d c_extrinsic_rotation = RotationMatrixToRPY(_c_params.R_camera_robot);
+//            Eigen::Matrix3d R_robot = CreateRotationMatrix({R_robot_robot_ordered_vec[1]-c_extrinsic_rotation[0], R_robot_robot_ordered_vec[0]-c_extrinsic_rotation[1], R_robot_robot_ordered_vec[2]-c_extrinsic_rotation[2]});
 
-            R_robot_robot_ordered_vec[2] += 180;
-            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
+            Eigen::Vector3d R_camera_raw_rpy = RotationMatrixToRPY(R_tag_camera_raw);
 
-            //Eigen::Vector3d c_extrinsic_rotation = RotationMatrixToRPY(_c_params.R_camera_robot);
-            Eigen::Matrix3d R_robot = CreateRotationMatrix({R_robot_robot_ordered_vec[1]-c_extrinsic_rotation[0], R_robot_robot_ordered_vec[0]-c_extrinsic_rotation[1], R_robot_robot_ordered_vec[2]});
+            Eigen::Matrix3d R_robot = CreateRotationMatrix({R_camera_raw_rpy[2], R_camera_raw_rpy[0], R_camera_raw_rpy[1] - cam_rpy_raw[2]});
+
+            AppLogger::Logger::Log("Tag rotation: " + to_string(R_camera_raw_rpy[1]) + ", robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)[2]));
+            AppLogger::Logger::Log("#### CKNUTSON robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)));
+
 
 
 
