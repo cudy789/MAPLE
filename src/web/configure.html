@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MAPLE Configuration</title>
+    <link rel="stylesheet" href="codemirror.css">
+    <script src="js/codemirror.js"></script>
+    <script src="js/yaml.js"></script>
+    <script src="js/axios.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px 10px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        h1 {
+            font-size: 32px;
+            padding: 12px 18px;
+            background: rgba(30, 30, 30, 0.9);
+            color: #4CAF50;
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.6;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            white-space: pre-line;
+            z-index: 100;
+            margin-bottom: 20px;
+        }
+
+
+        .CodeMirror {
+            border: 1px solid #333;
+            background-color: #1e1e1e;
+            height: 400px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border-radius: 5px;
+        }
+
+        #saveButton {
+            margin-top: 15px;
+            padding: 10px 24px;
+            background: #2b392b;
+            color: #4CAF50;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #saveButton:hover {
+            background-color: #305e30;
+        }
+
+        #home-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            z-index: 101;
+            background: #2b392b;
+            color: #4CAF50;
+            border: none;
+            padding: 8px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #home-btn:hover {
+            background-color: #305e30;
+        }
+
+        /* Optional: smooth transition for visual polish */
+        * {
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+
+<button id="home-btn" onclick="window.location.href='index.html'">Home</button>
+
+<h1>MAPLE Configuration</h1>
+<textarea id="editor"></textarea>
+<br>
+<button id="saveButton">Save & Restart</button>
+
+<script>
+    const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+        lineNumbers: true,
+        mode: 'yaml',
+        theme: 'default' // You can replace this with 'dark' if using a dark theme name
+    });
+
+    async function loadConfig() {
+        try {
+            const response = await axios.get('/api/get-config');
+            editor.setValue(response.data);
+        } catch (error) {
+            alert("Failed to load configuration.");
+            console.error(error);
+        }
+    }
+
+    document.getElementById('saveButton').addEventListener('click', async () => {
+        const configData = editor.getValue();
+
+        const confirmed = confirm("Are you sure you want to save and restart MAPLE?");
+        if (!confirmed) return;
+
+        try {
+            await axios.post('/api/save-config', { config: configData });
+            alert("Saved configuration.");
+            console.log("Saved configuration.");
+        } catch (error) {
+            alert(error.response?.data || "Error saving config");
+            console.error(error);
+        }
+    });
+
+    window.onload = loadConfig;
+</script>
+</body>
+</html>

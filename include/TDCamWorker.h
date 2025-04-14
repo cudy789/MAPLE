@@ -18,10 +18,7 @@ public:
      * @brief No default constructor.
      */
     TDCamWorker() = delete;
-    /**
-     * @brief Call parent class destructors.
-     */
-    ~TDCamWorker() = default;
+
     /**
      * @brief Call the Worker and TDCam constructors, set execution frequency to 50hz and enable stay_alive. Register
      * the tag detection callback function, and set flag to enable/disable debug cv ImShow.

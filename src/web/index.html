@@ -5,43 +5,108 @@
     <title>MAPLE Pose Vis</title>
     <style>
         body {
-         margin: 0;
-         overflow: hidden;
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
         }
+
         #info {
             position: absolute;
-            top: 0;
-            left: 0;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #00FF00;
-            font-family: Arial, sans-serif;
+            top: 10px;
+            left: 15px;
+            padding: 12px 18px;
+            background: rgba(30, 30, 30, 0.9);
+            color: #4CAF50;
+            font-family: 'Courier New', Courier, monospace;
             font-size: 14px;
+            line-height: 1.6;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            white-space: pre-line;
             z-index: 100;
         }
-        /*style="position: absolute; top: 5%; left: 0; z-index: 200; border: 2px solid white*/
+
+        #edit-config-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            z-index: 101;
+            background: #2b392b;
+            color: #4CAF50;
+            border: none;
+            padding: 8px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #edit-config-btn:hover {
+            background-color: #305e30;
+        }
+
         #mjpeg-container {
             position: absolute;
-            top: 5%;
-            left: 0;
-            height: 90%; /* Adjust as needed */
+            top: 90px;
+            left: 15px;
+            max-height: 90vh;
             overflow-y: auto;
             z-index: 200;
-            border: 2px solid white;
             background-color: black;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            border-radius: 4px;
         }
+
         #mjpeg-stream {
             display: block;
+            max-width: 100%;
+            height: auto;
             margin: 0 auto;
         }
+
+        #recenter-btn {
+            position: absolute;
+            top: 60px;
+            right: 15px;
+            z-index: 101;
+            background: #2b392b;
+            color: #4CAF50;
+            border: none;
+            padding: 8px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #recenter-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #recenter-btn:hover {
+            background-color: #305e30;
+        }
+
     </style>
-<!--    <script src="/three.module.js"></script>-->
 </head>
 <body>
+
+<!-- Info & Buttons -->
 <div id="info">No connection...</div>
+<button id="edit-config-btn" onclick="window.location.href='configure.html'">Edit Configuration</button>
+<button id="recenter-btn">Recenter</button>
+
+
+<!-- MJPEG Video Container -->
 <div id="mjpeg-container">
     <img id="mjpeg-stream" alt="MJPEG Stream">
 </div>
+
 <script type="module">
 
     const mjpegStream = document.getElementById('mjpeg-stream');
@@ -121,7 +186,7 @@
     axes.rotation.set(0, -Math.PI/2, Math.PI/2)
     robot_group.add(axes);
 
-    const gridHelper = new THREE.GridHelper(20, 20);
+    const gridHelper = new THREE.GridHelper(100, 100);
 
     scene.add(gridHelper);
 
@@ -134,6 +199,18 @@
     camera.position.y = 0;
     camera.position.z = 2;
     controls.update();
+
+    // Let user take control
+    let userHasControl = false;
+    const recenterBtn = document.getElementById('recenter-btn');
+    controls.addEventListener('start', () => {
+        userHasControl = true;
+        recenterBtn.classList.add('visible');
+    });
+    recenterBtn.addEventListener('click', () => {
+        userHasControl = false;
+        recenterBtn.classList.remove('visible');
+    });
 
 
     // Webpage coord display
@@ -184,8 +261,18 @@
     });
 
     function animate() {
+        if (!userHasControl && robot_group) {
+            const targetPosition = new THREE.Vector3().copy(robot_group.position);
+            const desiredCameraOffset = new THREE.Vector3(0, 2, 3); // Slightly above and behind
+            const desiredCameraPosition = targetPosition.clone().add(desiredCameraOffset);
+
+            // Smooth camera movement
+            camera.position.lerp(desiredCameraPosition, 0.02);
+            controls.target.lerp(targetPosition, 0.02);
+        }
+
         controls.update();
-        controls.target.set(controls.target.x, 0, controls.target.z);
+        controls.target.set(controls.target.x, 0, controls.target.z); // Keep camera flat on Z plane
         renderer.render(scene, camera);
     }
 

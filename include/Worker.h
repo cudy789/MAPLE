@@ -91,11 +91,17 @@ public:
     /**
      * @brief Ensure the thread has stopped execution, then delete the thread.
      */
-    virtual ~Worker(){
-        if (_stop_sem.try_acquire_for(std::chrono::duration<ulong, std::milli>(3000))){
-            if (!_stop) Stop();
+    ~Worker(){
+        _stop_sem.acquire();
+
+        if (!_stop){
+            _stop_sem.release();
+            Stop();
+        } else{
             _stop_sem.release();
         }
+
+        _t_worker->join();
         delete _t_worker;
     }
     /**
@@ -166,9 +172,20 @@ public:
         _stop_sem.release();
         _interrupted_sem.release();
         _stay_alive_sem.release();
-        Join();
+        while (!IsFinished()){
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//            AppLogger::Logger::Log("in worker stop function, waiting for " + GetName() + " to finish, stop=" + std::to_string(_stop));
+        }
         return true;
     };
+
+    bool IsFinished(){
+        _is_finished_sem.acquire();
+        bool is_finished = _is_finished;
+        _is_finished_sem.release();
+        return is_finished;
+    }
+
     /**
      * @brief Block until the worker finishes execution.
      */
@@ -217,6 +234,9 @@ protected:
      * This function should never block. No timeouts are implemented to detect loop overrun.
      */
     virtual void Finish() {
+        _is_finished_sem.acquire();
+        _is_finished = true;
+        _is_finished_sem.release();
         AppLogger::Logger::Log(_thread_name + " exited");
     };
     std::thread* _t_worker{};
@@ -229,6 +249,9 @@ private:
     bool _interrupted = false;
     std::binary_semaphore _interrupted_sem{1};
     double _exec_freq = 100.0;
+
+    bool _is_finished = false;
+    std::binary_semaphore _is_finished_sem{1};
 
     double _measure_exec_freq{};
     std::binary_semaphore _exec_freq_sem{1};
@@ -254,23 +277,31 @@ private:
 
                 while (true) {
 
-                    if (_stop_sem.try_acquire()) {
-                        if (_stop) {
-                            _stop_sem.release();
-                            break;
-                        }
+                    _stop_sem.acquire();
+                    if (_stop) {
                         _stop_sem.release();
+                        break;
+                    }
+                    _stop_sem.release();
 
-                        current_duration_ns = CurrentTime() - last_loop_ns;
-                        if (current_duration_ns >= ((1.0 / _exec_freq) * 1.0e9)) {
-                            last_loop_ns = CurrentTime();
+                    current_duration_ns = CurrentTime() - last_loop_ns;
+                    if (current_duration_ns >= ((1.0 / _exec_freq) * 1.0e9)) {
+                        last_loop_ns = CurrentTime();
+
                             Execute();
 
-                            runtimes.push_back(current_duration_ns);
-                        } else {
-                            int sleep_duration_ns = (int) (0.66 * (((1.0 / _exec_freq) * 1.0e9) - current_duration_ns));
-                            std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_duration_ns));
-                        }
+//                        });
+//
+//                        if (future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout) {
+//                            AppLogger::Logger::Log(_thread_name + " Execute() timeout!", AppLogger::SEVERITY::WARNING);
+//                        } else {
+//                            future.get(); // Get any exceptions thrown by Execute()
+//                        }
+
+                        runtimes.push_back(current_duration_ns);
+                    } else {
+                        int sleep_duration_ns = (int) (0.66 * (((1.0 / _exec_freq) * 1.0e9) - current_duration_ns));
+                        std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_duration_ns));
                     }
 
                     if ((CurrentTime() - last_log_time_ns) > 1.0e9) {
@@ -294,9 +325,9 @@ private:
 
                 }
             } catch (const std::exception& e){
-                AppLogger::Logger::Log(e.what());
+                AppLogger::Logger::Log(_thread_name + " in the catch handler!", AppLogger::SEVERITY::WARNING);
+                AppLogger::Logger::Log(e.what(), AppLogger::SEVERITY::WARNING);
             }
-
             _stay_alive_sem.acquire();
             _interrupted_sem.acquire();
             if (!_stay_alive || _interrupted) {

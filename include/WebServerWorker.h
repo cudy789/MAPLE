@@ -11,6 +11,7 @@
 
 #include "Worker.h"
 #include "Pose.h"
+#include "MAPLE.h"
 
 /**
  * @brief The threaded webserver which serves a simple MJPEG stream of all annotated camera images to clients. Runs on t
@@ -39,6 +40,7 @@ public:
      */
     bool RegisterMatFunc(const std::function<cv::Mat()>& mat_func);
 
+    void ClearMatFuncRegistrations();
     /**
      * @brief Register the callback function which grabs the latest robot pose. This function will
      * be called once an Execute cycle to acquire new pose data.
@@ -46,6 +48,8 @@ public:
      * @return true if registration succeeds, false otherwise.
      */
     bool RegisterRobotPoseFunc(const std::function<RobotPose()>& pose_func);
+
+    void ClearRobotPoseFuncRegistrations();
 
 protected:
     /**
@@ -69,6 +73,9 @@ private:
     mg_connection* _ws_connection;
 
     std::vector<std::function<cv::Mat()>> _mat_funcs;
+    std::binary_semaphore _mat_funcs_sem{1};
     std::function<RobotPose()> _robot_pose_func;
+    std::binary_semaphore _robot_pose_func_sem{1};
 
+    std::atomic<bool> _restart_requested = false;
 };

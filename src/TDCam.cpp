@@ -109,6 +109,7 @@ void TDCam::InitDetector(){
 void TDCam::CloseCap(){
     AppLogger::Logger::Log("Closing video capture on camera " + _c_params.name);
     _cap.release();
+    AppLogger::Logger::Log("done closing " + _c_params.name + " capture");
 }
 
 TDCam::~TDCam() {
@@ -276,8 +277,8 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
             T_robot[1] += _c_params.T_camera_robot[0];
             T_robot[2] += _c_params.T_camera_robot[2];
 
-            AppLogger::Logger::Log("cam_rpy_raw: " + to_string(cam_rpy_raw));
-            AppLogger::Logger::Log("T_tag_camera_raw: " + to_string(T_tag_camera_raw));
+//            AppLogger::Logger::Log("cam_rpy_raw: " + to_string(cam_rpy_raw));
+//            AppLogger::Logger::Log("T_tag_camera_raw: " + to_string(T_tag_camera_raw));
 
 //            Eigen::Vector3d R_robot_robot_ordered_vec = RotationMatrixToRPY(R_robot_unordered);
 //            R_robot_robot_ordered_vec[0] += 90;
@@ -293,8 +294,8 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
 
             Eigen::Matrix3d R_robot = CreateRotationMatrix({R_camera_raw_rpy[2], R_camera_raw_rpy[0], R_camera_raw_rpy[1] - cam_rpy_raw[2]});
 
-            AppLogger::Logger::Log("Tag rotation: " + to_string(R_camera_raw_rpy[1]) + ", robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)[2]));
-            AppLogger::Logger::Log("#### CKNUTSON robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)));
+//            AppLogger::Logger::Log("Tag rotation: " + to_string(R_camera_raw_rpy[1]) + ", robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)[2]));
+//            AppLogger::Logger::Log("#### CKNUTSON robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)));
 
 
 
@@ -327,8 +328,8 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
                 }
             }
 
-            AppLogger::Logger::Log("Processed tag " + to_string(new_tag), AppLogger::SEVERITY::DEBUG);
-            AppLogger::Logger::Log("Tag " + to_string(det->id) + " known global location: " + to_string(Pose_AG.T), AppLogger::SEVERITY::DEBUG);
+//            AppLogger::Logger::Log("Processed tag " + to_string(new_tag), AppLogger::SEVERITY::DEBUG);
+//            AppLogger::Logger::Log("Tag " + to_string(det->id) + " known global location: " + to_string(Pose_AG.T), AppLogger::SEVERITY::DEBUG);
 
             // Add tag to detected TagArray object
             detected_tags.AddTag(new_tag);

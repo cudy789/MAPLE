@@ -73,9 +73,8 @@ public:
 
     /**
      * @brief Stop all Workers gracefully.
-     * @return true if all Workers were successfully stopped, false if at least one Worker was not stopped.
      */
-    bool Stop();
+    void Stop();
 
     /**
      * @brief Register sigint callback to Workers
@@ -90,6 +89,11 @@ public:
      */
     void SignalCallback(int signum);
 
+    /**
+     * @brief Restart MAPLE.
+     */
+    void Restart();
+
 private:
     MAPLE() = default;
 
@@ -97,6 +101,17 @@ private:
     std::vector<Worker*> _workers_t;
     std::vector<Worker*> _cam_workers_t;
 
+    Worker* _w_w;
+
     MAPLEParams _params;
+
+    std::string _config_file;
+
+    bool _is_finished = false;
+    std::binary_semaphore _is_finished_sem{1};
+
+    void SetupHelper(const std::string &config_file);
+
+    bool _restart_requested = false;
 
 };

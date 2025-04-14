@@ -23,4 +23,4 @@ cameras:
     rotation: [ 0, 0, 0 ]
 
     fps: 100.0
-    exposure: 30
+    exposure: 1000
