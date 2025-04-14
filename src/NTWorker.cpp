@@ -12,7 +12,16 @@ NTWorker::NTWorker() :
     _robot_relative_tagid = _nt_table->GetIntegerArrayTopic("robot_relative_tagid").Publish();
     _robot_relative_x = _nt_table->GetDoubleArrayTopic("robot_relative_x").Publish();
     _robot_relative_y = _nt_table->GetDoubleArrayTopic("robot_relative_y").Publish();
+    _robot_relative_z = _nt_table->GetDoubleArrayTopic("robot_relative_z").Publish();
     _robot_relative_yaw = _nt_table->GetDoubleArrayTopic("robot_relative_yaw").Publish();
+
+    _camera_relative_tagid = _nt_table->GetIntegerArrayTopic("camera_relative_tagid").Publish();
+    _camera_relative_x = _nt_table->GetDoubleArrayTopic("camera_relative_x").Publish();
+    _camera_relative_y = _nt_table->GetDoubleArrayTopic("camera_relative_y").Publish();
+    _camera_relative_z = _nt_table->GetDoubleArrayTopic("camera_relative_z").Publish();
+    _camera_relative_yaw = _nt_table->GetDoubleArrayTopic("camera_relative_yaw").Publish();
+
+
 }
 
 NTWorker::NTWorker(int team_num) :  NTWorker() { _team_num=team_num; }
@@ -69,6 +78,7 @@ void NTWorker::Execute() {
     std::vector<long> rr_tagid;
     std::vector<double> rr_x;
     std::vector<double> rr_y;
+    std::vector<double> rr_z;
     std::vector<double> rr_yaw;
 
     for (const auto& tag_vec: new_pose.RelativeTags.data){
@@ -77,6 +87,7 @@ void NTWorker::Execute() {
                 rr_tagid.push_back(t.tag_id);
                 rr_x.push_back(t.robot.T[0]);
                 rr_y.push_back(t.robot.T[1]);
+                rr_z.push_back(t.robot.T[2]);
                 rr_yaw.push_back(RotationMatrixToRPY(t.robot.R)[2]);
             }
         }
@@ -85,6 +96,33 @@ void NTWorker::Execute() {
     _robot_relative_tagid.Set(rr_tagid);
     _robot_relative_x.Set(rr_x);
     _robot_relative_y.Set(rr_y);
+    _robot_relative_z.Set(rr_z);
     _robot_relative_yaw.Set(rr_yaw);
+
+
+    // Publish camera relative tags
+    std::vector<long> cr_tagid;
+    std::vector<double> cr_x;
+    std::vector<double> cr_y;
+    std::vector<double> cr_z;
+    std::vector<double> cr_yaw;
+
+    for (const auto& tag_vec: new_pose.RelativeTags.data){
+        if (!tag_vec.empty()){
+            for (const auto& t: tag_vec){
+                cr_tagid.push_back(t.tag_id);
+                cr_x.push_back(t.camera.T[0]);
+                cr_y.push_back(t.camera.T[1]);
+                cr_z.push_back(t.camera.T[2]);
+                cr_yaw.push_back(RotationMatrixToRPY(t.camera.R)[2]);
+            }
+        }
+    }
+
+    _camera_relative_tagid.Set(cr_tagid);
+    _camera_relative_x.Set(cr_x);
+    _camera_relative_y.Set(cr_y);
+    _camera_relative_z.Set(cr_z);
+    _camera_relative_yaw.Set(cr_yaw);
 
 }

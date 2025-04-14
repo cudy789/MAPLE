@@ -12,8 +12,8 @@
 
         #info {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 10px;
+            left: 15px;
             padding: 12px 18px;
             background: rgba(30, 30, 30, 0.9);
             color: #4CAF50;
@@ -29,13 +29,13 @@
         #edit-config-btn {
             position: absolute;
             top: 10px;
-            right: 10px;
+            right: 15px;
             z-index: 101;
-            background-color: #4CAF50;
-            color: white;
+            background: #2b392b;
+            color: #4CAF50;
             border: none;
             padding: 8px 16px;
-            font-size: 13px;
+            font-size: 15px;
             font-weight: bold;
             border-radius: 4px;
             cursor: pointer;
@@ -43,13 +43,13 @@
         }
 
         #edit-config-btn:hover {
-            background-color: #45a049;
+            background-color: #305e30;
         }
 
         #mjpeg-container {
             position: absolute;
-            top: 110px;
-            left: 20px;
+            top: 90px;
+            left: 15px;
             max-height: 90vh;
             overflow-y: auto;
             z-index: 200;
@@ -65,6 +65,33 @@
             margin: 0 auto;
         }
 
+        #recenter-btn {
+            position: absolute;
+            top: 60px;
+            right: 15px;
+            z-index: 101;
+            background: #2b392b;
+            color: #4CAF50;
+            border: none;
+            padding: 8px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #recenter-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #recenter-btn:hover {
+            background-color: #305e30;
+        }
+
     </style>
 </head>
 <body>
@@ -72,6 +99,8 @@
 <!-- Info & Buttons -->
 <div id="info">No connection...</div>
 <button id="edit-config-btn" onclick="window.location.href='configure.html'">Edit Configuration</button>
+<button id="recenter-btn">Recenter</button>
+
 
 <!-- MJPEG Video Container -->
 <div id="mjpeg-container">
@@ -157,7 +186,7 @@
     axes.rotation.set(0, -Math.PI/2, Math.PI/2)
     robot_group.add(axes);
 
-    const gridHelper = new THREE.GridHelper(20, 20);
+    const gridHelper = new THREE.GridHelper(100, 100);
 
     scene.add(gridHelper);
 
@@ -171,9 +200,25 @@
     camera.position.z = 2;
     controls.update();
 
+    // Let user take control
+    let userHasControl = false;
+    const recenterBtn = document.getElementById('recenter-btn');
+    controls.addEventListener('start', () => {
+        userHasControl = true;
+        recenterBtn.classList.add('visible');
+    });
+    recenterBtn.addEventListener('click', () => {
+        userHasControl = false;
+        recenterBtn.classList.remove('visible');
+    });
+
+
     // Webpage coord display
     const infoDiv = document.getElementById('info');
     const socket = new WebSocket(webSocketUrl);
+
+    infoDiv.setAttribute('style', 'white-space: pre;');
+
 
     socket.onopen = () => {
         console.log('WebSocket connection established');
@@ -191,8 +236,9 @@
                 robot_group.position.set(-data.y, data.z, -data.x);
                 robot_group.rotation.set(data.pitch / 180 * Math.PI + Math.PI, -1*(data.yaw / 180 * Math.PI) + Math.PI, data.roll / 180 * Math.PI + Math.PI/2);
 
-                infoDiv.textContent = `x: ${data.x.toFixed(2)}, y: ${data.y.toFixed(2)}, z: ${data.z.toFixed(2)} \n` +
-                    `roll: ${(data.roll).toFixed(2)}, pitch: ${(data.pitch).toFixed(2)}, yaw: ${(data.yaw).toFixed(2)}`;
+                infoDiv.textContent = `Global position - x: ${data.x.toFixed(2)}, y: ${data.y.toFixed(2)}, z: ${data.z.toFixed(2)} ` +
+                    `roll: ${(data.roll).toFixed(2)}, pitch: ${(data.pitch).toFixed(2)}, yaw: ${(data.yaw).toFixed(2)} \n` +
+                    `Robot relative tag position ${data.rob_rel_id} - x: $ ${data.rob_rel_x.toFixed(2)}, y: ${data.rob_rel_y.toFixed(2)}, z: ${data.rob_rel_z.toFixed(2)}, yaw: ${data.rob_rel_yaw.toFixed(2)}`;
             }
         } catch (error) {
             console.error('Error parsing WebSocket message:', error);
@@ -215,8 +261,18 @@
     });
 
     function animate() {
+        if (!userHasControl && robot_group) {
+            const targetPosition = new THREE.Vector3().copy(robot_group.position);
+            const desiredCameraOffset = new THREE.Vector3(0, 2, 3); // Slightly above and behind
+            const desiredCameraPosition = targetPosition.clone().add(desiredCameraOffset);
+
+            // Smooth camera movement
+            camera.position.lerp(desiredCameraPosition, 0.02);
+            controls.target.lerp(targetPosition, 0.02);
+        }
+
         controls.update();
-        controls.target.set(controls.target.x, 0, controls.target.z);
+        controls.target.set(controls.target.x, 0, controls.target.z); // Keep camera flat on Z plane
         renderer.render(scene, camera);
     }
 

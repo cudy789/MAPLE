@@ -257,24 +257,46 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
 
             // ============= Robot Frame =============
 
-//            Eigen::Matrix3d R_robot = Pose_AG.R.transpose() * R_robot_global;
-//            Eigen::Vector3d T_robot = Pose_AG.T + _c_params.R_camera_robot * T_tag_camera_raw + _c_params.T_camera_robot;
-
             Eigen::Matrix3d R_robot_unordered = ((R_tag_global_fix * R_tag_camera_raw.transpose()));
-            Eigen::Vector3d T_robot_unordered = _c_params.R_camera_robot.transpose() * (T_tag_global_fix * (
-                    _c_params.R_camera_robot * ((R_tag_global_fix * R_tag_camera_raw.transpose()))
-            ) * T_tag_camera_raw + _c_params.R_camera_robot * _c_params.T_camera_robot);
 
-            Eigen::Vector3d T_robot = {T_robot_unordered[1], -T_robot_unordered[0], T_robot_unordered[2]};
 
-            Eigen::Vector3d R_robot_robot_ordered_vec = RotationMatrixToRPY(R_robot_unordered);
-            R_robot_robot_ordered_vec[0] += 90;
-            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
+//            Eigen::Vector3d T_robot_unordered = (_c_params.R_camera_robot.transpose() * T_tag_camera_raw) + _c_params.T_camera_robot;
+//
+//            Eigen::Vector3d T_robot = {-T_robot_unordered[1], T_robot_unordered[2], T_robot_unordered[0]};
+            Eigen::Vector3d cam_rpy_raw = RotationMatrixToRPY(_c_params.R_camera_robot);
+            cam_rpy_raw[2] += 90;
+            cam_rpy_raw[2] *= -1;
+            //                                base dist (x)             offset center of robot  (yaw * y dist)                                 account for dependent axis (pitch * y dist)
+            Eigen::Vector3d T_robot = {T_tag_camera_raw[0] - sin(Deg2Rad(cam_rpy_raw[2])) * T_tag_camera_raw[2] + sin(Deg2Rad(cam_rpy_raw[1])) * T_tag_camera_raw[2],
+            //                                base dist (y)             offset center of robot  (pitch * z dist)                               account for dependent axis (yaw * x dist)
+                                       T_tag_camera_raw[2] - sin(Deg2Rad(cam_rpy_raw[1])) * T_tag_camera_raw[1] + sin(Deg2Rad(cam_rpy_raw[2])) * T_tag_camera_raw[0],
+                                       T_tag_camera_raw[1]
+            };
 
-            R_robot_robot_ordered_vec[2] += 180;
-            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
-            //Eigen::Vector3d c_extrinsic_rotation = RotationMatrixToRPY(_c_params.R_camera_robot);
-            Eigen::Matrix3d R_robot = CreateRotationMatrix({R_robot_robot_ordered_vec[1]-c_extrinsic_rotation[0], R_robot_robot_ordered_vec[0]-c_extrinsic_rotation[1], R_robot_robot_ordered_vec[2]-c_extrinsic_rotation[2]});
+            T_robot[0] += -_c_params.T_camera_robot[1];
+            T_robot[1] += _c_params.T_camera_robot[0];
+            T_robot[2] += _c_params.T_camera_robot[2];
+
+//            AppLogger::Logger::Log("cam_rpy_raw: " + to_string(cam_rpy_raw));
+//            AppLogger::Logger::Log("T_tag_camera_raw: " + to_string(T_tag_camera_raw));
+
+//            Eigen::Vector3d R_robot_robot_ordered_vec = RotationMatrixToRPY(R_robot_unordered);
+//            R_robot_robot_ordered_vec[0] += 90;
+//            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
+//
+//            R_robot_robot_ordered_vec[2] += 180;
+//            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
+//
+//            //Eigen::Vector3d c_extrinsic_rotation = RotationMatrixToRPY(_c_params.R_camera_robot);
+//            Eigen::Matrix3d R_robot = CreateRotationMatrix({R_robot_robot_ordered_vec[1]-c_extrinsic_rotation[0], R_robot_robot_ordered_vec[0]-c_extrinsic_rotation[1], R_robot_robot_ordered_vec[2]-c_extrinsic_rotation[2]});
+
+            Eigen::Vector3d R_camera_raw_rpy = RotationMatrixToRPY(R_tag_camera_raw);
+
+            Eigen::Matrix3d R_robot = CreateRotationMatrix({R_camera_raw_rpy[2], R_camera_raw_rpy[0], R_camera_raw_rpy[1] - cam_rpy_raw[2]});
+
+//            AppLogger::Logger::Log("Tag rotation: " + to_string(R_camera_raw_rpy[1]) + ", robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)[2]));
+//            AppLogger::Logger::Log("#### CKNUTSON robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)));
+
 
 
 
@@ -290,7 +312,7 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
             // Camera frame
             new_tag.camera.R = R_tag_camera_raw;
             new_tag.camera.T = T_tag_camera_raw;
-//            // Robot frame
+            // Robot frame
             new_tag.robot.R = R_robot;
             new_tag.robot.T = T_robot;
             // Global frame
@@ -306,8 +328,8 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
                 }
             }
 
-            AppLogger::Logger::Log("Processed tag " + to_string(new_tag), AppLogger::SEVERITY::DEBUG);
-            AppLogger::Logger::Log("Tag " + to_string(det->id) + " known global location: " + to_string(Pose_AG.T), AppLogger::SEVERITY::DEBUG);
+//            AppLogger::Logger::Log("Processed tag " + to_string(new_tag), AppLogger::SEVERITY::DEBUG);
+//            AppLogger::Logger::Log("Tag " + to_string(det->id) + " known global location: " + to_string(Pose_AG.T), AppLogger::SEVERITY::DEBUG);
 
             // Add tag to detected TagArray object
             detected_tags.AddTag(new_tag);

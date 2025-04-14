@@ -12,6 +12,21 @@ truncate -s +10G $IMG  # Add 10GB to image size
 
 # Setup loop device
 LOOP_DEV=$(sudo losetup -Pf --show "$IMG")
+
+# Specify cleanups during exit
+cleanup() {
+    echo "Cleaning up loop devices and mounts..."
+    sudo umount -lf /mnt/pi-root/dev/pts || true
+    sudo umount -lf /mnt/pi-root/var/run/docker.sock || true
+    sudo umount -lf /mnt/pi-root/run || true
+    sudo umount -lf /mnt/pi-root/{sys,proc,dev} || true
+    sudo umount -lf /mnt/pi-root || true
+    if [ -n "$LOOP_DEV" ]; then
+        sudo losetup -d "$LOOP_DEV" || true
+    fi
+}
+trap cleanup EXIT
+
 ROOT_PART="${LOOP_DEV}p2"
 
 sudo losetup -Pf $IMG
@@ -63,12 +78,12 @@ sudo rm /etc/docker/daemon.json
 echo "Changed Docker data root directory, restarting Docker..."
 sudo systemctl restart docker
 # Unmount partitions
-sudo umount /mnt/pi-root/dev/pts
-sudo umount /mnt/pi-root/var/run/docker.sock
-sudo umount /mnt/pi-root/run
-sudo umount /mnt/pi-root/{sys,proc,dev}
-sudo umount /mnt/pi-root
-sudo losetup -d "$LOOP_DEV"
+sudo umount /mnt/pi-root/dev/pts || true
+sudo umount /mnt/pi-root/var/run/docker.sock || true
+sudo umount /mnt/pi-root/run || true
+sudo umount /mnt/pi-root/{sys,proc,dev} || true
+sudo umount /mnt/pi-root || true
+sudo losetup -d "$LOOP_DEV" || true
 
 # Shrink image
 echo "Shrink image"

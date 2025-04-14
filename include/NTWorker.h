@@ -87,7 +87,13 @@ private:
     nt::IntegerArrayPublisher _robot_relative_tagid;
     nt::DoubleArrayPublisher _robot_relative_x;
     nt::DoubleArrayPublisher _robot_relative_y;
+    nt::DoubleArrayPublisher _robot_relative_z;
     nt::DoubleArrayPublisher _robot_relative_yaw;
+    nt::IntegerArrayPublisher _camera_relative_tagid;
+    nt::DoubleArrayPublisher _camera_relative_x;
+    nt::DoubleArrayPublisher _camera_relative_y;
+    nt::DoubleArrayPublisher _camera_relative_z;
+    nt::DoubleArrayPublisher _camera_relative_yaw;
 
     std::function<RobotPose()> _pose_callback;
 };

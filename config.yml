@@ -3,9 +3,8 @@
 team_number: -1
 pose_logging: true
 cameras:
-
-  FRONT_CENTER:
-    camera_id: 0
+  USB_CAM:
+    camera_id: 4
     rx: 640
     ry: 480
 
@@ -18,10 +17,10 @@ cameras:
     cy: 240
 
     # Camera x, y, z location on the robot, in meters
-    translation: [ 0, 0, 1.25 ]
+    translation: [ 0, 0, 0 ]
 
     # Camera roll, pitch, yaw orientation on the robot, in degrees
-    rotation: [ 0, 15, 180 ]
+    rotation: [ 0, 0, 0 ]
 
-    fps: 60.0
-    exposure: 100
+    fps: 100.0
+    exposure: 1000
