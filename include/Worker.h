@@ -174,10 +174,8 @@ public:
         _stay_alive_sem.release();
         while (!IsFinished()){
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            AppLogger::Logger::Log("in worker stop function, waiting for " + GetName() + " to finish, stop=" + std::to_string(_stop));
+//            AppLogger::Logger::Log("in worker stop function, waiting for " + GetName() + " to finish, stop=" + std::to_string(_stop));
         }
-//        AppLogger::Logger::Log("in worker stop, worker finished");
-//        Join();
         return true;
     };
 
@@ -279,23 +277,31 @@ private:
 
                 while (true) {
 
-                    if (_stop_sem.try_acquire()) {
-                        if (_stop) {
-                            _stop_sem.release();
-                            break;
-                        }
+                    _stop_sem.acquire();
+                    if (_stop) {
                         _stop_sem.release();
+                        break;
+                    }
+                    _stop_sem.release();
 
-                        current_duration_ns = CurrentTime() - last_loop_ns;
-                        if (current_duration_ns >= ((1.0 / _exec_freq) * 1.0e9)) {
-                            last_loop_ns = CurrentTime();
+                    current_duration_ns = CurrentTime() - last_loop_ns;
+                    if (current_duration_ns >= ((1.0 / _exec_freq) * 1.0e9)) {
+                        last_loop_ns = CurrentTime();
+
                             Execute();
 
-                            runtimes.push_back(current_duration_ns);
-                        } else {
-                            int sleep_duration_ns = (int) (0.66 * (((1.0 / _exec_freq) * 1.0e9) - current_duration_ns));
-                            std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_duration_ns));
-                        }
+//                        });
+//
+//                        if (future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout) {
+//                            AppLogger::Logger::Log(_thread_name + " Execute() timeout!", AppLogger::SEVERITY::WARNING);
+//                        } else {
+//                            future.get(); // Get any exceptions thrown by Execute()
+//                        }
+
+                        runtimes.push_back(current_duration_ns);
+                    } else {
+                        int sleep_duration_ns = (int) (0.66 * (((1.0 / _exec_freq) * 1.0e9) - current_duration_ns));
+                        std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_duration_ns));
                     }
 
                     if ((CurrentTime() - last_log_time_ns) > 1.0e9) {
@@ -319,9 +325,9 @@ private:
 
                 }
             } catch (const std::exception& e){
-                AppLogger::Logger::Log(e.what());
+                AppLogger::Logger::Log(_thread_name + " in the catch handler!", AppLogger::SEVERITY::WARNING);
+                AppLogger::Logger::Log(e.what(), AppLogger::SEVERITY::WARNING);
             }
-
             _stay_alive_sem.acquire();
             _interrupted_sem.acquire();
             if (!_stay_alive || _interrupted) {

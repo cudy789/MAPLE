@@ -1,46 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Configuration Editor</title>
+    <title>MAPLE Config Editor</title>
     <link rel="stylesheet" href="codemirror.css">
     <script src="js/codemirror.js"></script>
     <script src="js/yaml.js"></script>
     <script src="js/axios.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
         }
+
+        h1 {
+            font-family: 'Fira Code', monospace;
+            font-size: 32px;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
         .CodeMirror {
-            border: 1px solid #ccc;
+            border: 1px solid #333;
+            background-color: #1e1e1e;
             height: 400px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border-radius: 5px;
         }
+
         #saveButton {
-            margin-top: 10px;
-            padding: 8px 20px;
+            margin-top: 15px;
+            padding: 10px 24px;
             background-color: #4CAF50;
-            color: white;
+            color: #fff;
+            font-weight: bold;
             border: none;
+            border-radius: 4px;
             cursor: pointer;
+            transition: background-color 0.2s ease;
         }
+
         #saveButton:hover {
             background-color: #45a049;
+        }
+
+        /* Optional: smooth transition for visual polish */
+        * {
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
         }
     </style>
 </head>
 <body>
-<h1>Configuration Editor</h1>
+<h1>MAPLE Config Editor</h1>
 <textarea id="editor"></textarea>
+<br>
 <button id="saveButton">Save & Restart</button>
 
 <script>
     const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
         lineNumbers: true,
         mode: 'yaml',
-        theme: 'default'
+        theme: 'default' // You can replace this with 'dark' if using a dark theme name
     });
 
-    // Load configuration
     async function loadConfig() {
         try {
             const response = await axios.get('/api/get-config');
@@ -51,22 +74,22 @@
         }
     }
 
-    // Save configuration
     document.getElementById('saveButton').addEventListener('click', async () => {
         const configData = editor.getValue();
 
         const confirmed = confirm("Are you sure you want to save and restart MAPLE?");
-        if (!confirmed) return;  // Exit if user cancels
+        if (!confirmed) return;
 
         try {
             await axios.post('/api/save-config', { config: configData });
+            alert("Saved configuration.");
+            console.log("Saved configuration.");
         } catch (error) {
-            alert("Failed to save configuration.");
+            alert(error.response?.data || "Error saving config");
             console.error(error);
         }
     });
 
-    // Load the config when the page loads
     window.onload = loadConfig;
 </script>
 </body>

@@ -89,12 +89,19 @@ public:
      */
     void SignalCallback(int signum);
 
+    /**
+     * @brief Restart MAPLE.
+     */
+    void Restart();
+
 private:
     MAPLE() = default;
 
     LocalizationWorker* _l_w;
     std::vector<Worker*> _workers_t;
     std::vector<Worker*> _cam_workers_t;
+
+    Worker* _w_w;
 
     MAPLEParams _params;
 
@@ -104,4 +111,7 @@ private:
     std::binary_semaphore _is_finished_sem{1};
 
     void SetupHelper(const std::string &config_file);
+
+    bool _restart_requested = false;
+
 };

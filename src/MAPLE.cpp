@@ -8,7 +8,7 @@ void MAPLE::Setup(const std::string& config_file) {
 
     // Register signal handler
     signal(SIGINT, MAPLE::MAPLE::StaticSignalCallback);
-    signal(27, MAPLE::MAPLE::StaticSignalCallback);
+//    signal(27, MAPLE::MAPLE::StaticSignalCallback);
 
     _config_file = config_file;
 
@@ -29,9 +29,11 @@ void MAPLE::SetupHelper(const std::string& config_file){
     _l_w->LogStats(true);
 
     // Create webserver worker
-    WebServerWorker* w_w = new WebServerWorker(8080);
-    w_w->RegisterRobotPoseFunc([this]() -> RobotPose {return _l_w->GetRobotPose();});
-    _workers_t.emplace_back(w_w);
+    if (!_restart_requested){
+        _w_w = new WebServerWorker(8080);
+    }
+    dynamic_cast<WebServerWorker*>(_w_w)->RegisterRobotPoseFunc([this]() -> RobotPose {return _l_w->GetRobotPose();});
+//    _workers_t.emplace_back(w_w);
 
     // Create NetworkTables worker
     if (_params.team_num > 0){
@@ -46,12 +48,12 @@ void MAPLE::SetupHelper(const std::string& config_file){
     for (CamParams& p: c_params){
         if (p.calibrate){
             CalibrationCamWorker* this_cam_worker = new CalibrationCamWorker(p);
-            w_w->RegisterMatFunc([this_cam_worker]() -> cv::Mat {return this_cam_worker->GetAnnotatedIm();});
+            dynamic_cast<WebServerWorker*>(_w_w)->RegisterMatFunc([this_cam_worker]() -> cv::Mat {return this_cam_worker->GetAnnotatedIm();});
             _cam_workers_t.emplace_back(this_cam_worker);
         } else{
             TDCamWorker* this_cam_worker = new TDCamWorker(p, tag_layout, [this](TagArray& raw_tags) -> bool {return _l_w->QueueTags(raw_tags);},
                                                            _params.video_recording);
-            w_w->RegisterMatFunc([this_cam_worker]() -> cv::Mat {return this_cam_worker->GetAnnotatedIm();});
+            dynamic_cast<WebServerWorker*>(_w_w)->RegisterMatFunc([this_cam_worker]() -> cv::Mat {return this_cam_worker->GetAnnotatedIm();});
             _cam_workers_t.emplace_back(this_cam_worker);
         }
     }
@@ -70,6 +72,9 @@ void MAPLE::Start(){
     }
     for (Worker* w: _cam_workers_t){
         w->Start();
+    }
+    if (!_restart_requested){
+        _w_w->Start();
     }
 
     AppLogger::Logger::Log("All workers have been started");
@@ -95,17 +100,36 @@ void MAPLE::Join(){
 }
 
 void MAPLE::Stop(){
-    for (Worker* t: _workers_t){
-        t->Stop();
-        delete t;
+    if (!_restart_requested){
+        _w_w->Stop();
+        delete _w_w;
+    } else{
+        dynamic_cast<WebServerWorker*>(_w_w)->ClearRobotPoseFuncRegistrations();
+        dynamic_cast<WebServerWorker*>(_w_w)->ClearMatFuncRegistrations();
     }
-    _workers_t.clear();
     for (Worker* t: _cam_workers_t){
         t->Stop();
         delete t;
     }
     _cam_workers_t.clear();
+    for (Worker* t: _workers_t){
+        t->Stop();
+        delete t;
+    }
+    _workers_t.clear();
     AppLogger::Logger::Log("Stopped all worker threads");
+}
+
+void MAPLE::Restart(){
+    AppLogger::Logger::Log("Restarting MAPLE", AppLogger::SEVERITY::WARNING);
+    _restart_requested = true;
+    Stop();
+    AppLogger::Logger::Log("Reloading config file", AppLogger::SEVERITY::WARNING);
+//    exit(1);
+    SetupHelper(_config_file);
+    Start();
+    _restart_requested = false;
+
 }
 
 void MAPLE::StaticSignalCallback(int signum) {

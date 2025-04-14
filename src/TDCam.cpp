@@ -109,6 +109,7 @@ void TDCam::InitDetector(){
 void TDCam::CloseCap(){
     AppLogger::Logger::Log("Closing video capture on camera " + _c_params.name);
     _cap.release();
+    AppLogger::Logger::Log("done closing " + _c_params.name + " capture");
 }
 
 TDCam::~TDCam() {
