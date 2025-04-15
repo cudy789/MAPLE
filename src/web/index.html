@@ -11,18 +11,19 @@
         }
 
         #info {
-            position: absolute;
+            position: fixed;
             top: 10px;
             left: 15px;
             padding: 12px 18px;
             background: rgba(30, 30, 30, 0.9);
             color: #4CAF50;
             font-family: 'Courier New', Courier, monospace;
-            font-size: 14px;
+            font-size: clamp(12px, 0.9vw, 16px);  /* Scales with screen width */
             line-height: 1.6;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-            white-space: pre-line;
+            white-space: pre-wrap;
+            word-break: break-word;
             z-index: 100;
         }
 
@@ -47,22 +48,33 @@
         }
 
         #mjpeg-container {
-            position: absolute;
+            position: fixed;
             top: 90px;
             left: 15px;
-            max-height: 90vh;
+            max-height: calc(100vh - 110px); /* 90px top + 20px bottom buffer */
+
+            max-width: 35vw;
             overflow-y: auto;
+
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
             z-index: 200;
+
             background-color: black;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
             border-radius: 4px;
         }
 
         #mjpeg-stream {
-            display: block;
-            max-width: 100%;
+            width: 100%;               /* fill container, but allow container to shrink */
             height: auto;
             margin: 0 auto;
+            max-width: 100%;
+            max-height: 100vh;
+
+            object-fit: contain;
+            border-radius: 5px; /* match container */
         }
 
         #recenter-btn {
@@ -117,13 +129,13 @@
     mjpegStream.src = streamUrl;
 
     mjpegStream.onload = () => {
-        // console.log('MJPEG stream connected');
-        const naturalWidth = mjpegStream.naturalWidth;
-        const naturalHeight = mjpegStream.naturalHeight;
-
-        // Set the size of the image element dynamically
-        mjpegStream.style.width = `${naturalWidth}px`;
-        mjpegStream.style.height = `${naturalHeight}px`;
+        console.log('MJPEG stream connected');
+        // const naturalWidth = mjpegStream.naturalWidth;
+        // const naturalHeight = mjpegStream.naturalHeight;
+        // //
+        // // // Set the size of the image element dynamically
+        // mjpegStream.style.width = `${naturalWidth}px`;
+        // mjpegStream.style.height = `${naturalHeight}px`;
     };
 
     mjpegStream.onerror = () => {
