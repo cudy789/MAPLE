@@ -9,9 +9,14 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 40px 10px;
+            margin-top: 60px;
+            margin-left: 10px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            /*padding: 40px 10px;*/
             background-color: #1e1e1e;
             color: #e0e0e0;
+            /*height: calc(100vh - 80px - 15px);*/
         }
 
         h1 {
@@ -36,7 +41,6 @@
             justify-content: flex-start;
             /*max-height: 90vh;*/
             flex-wrap: nowrap;        /* prevent wrapping */
-            overflow: hidden;
         }
 
         #mjpeg-container {
@@ -115,9 +119,10 @@
         }
 
         #home-btn {
-            position: absolute;
+            position: fixed;
             top: 10px;
             right: 15px;
+            margin-bottom: 10px;
             z-index: 101;
             background: #2b392b;
             color: #4CAF50;
