@@ -3,7 +3,7 @@ name: Create a MAPLE .syrup release
 
 on:
   push:
-    paths: [ "include/**", "src/**", "lib/**", "test/**", "CMakeLists.txt", "fmap/**" ]
+    paths: [ "include/**", "src/**", "lib/**", "test/**", "CMakeLists.txt", "fmap/**", "scripts/create-release.sh", "tools/create_rpi_image/**" ]
 
 jobs:
   create-arm-release:
