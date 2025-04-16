@@ -23,6 +23,7 @@ mkdir -p release/"$ARCH"
 # Build MAPLE
 rm -rf build
 
+echo "Going to build"
 docker run --rm -h maple --name maple --group-add sudo --group-add video --add-host $IMAGE_NAME-$HOSTNAME:127.0.0.1 --network host \
   --user=$(id -u $USER):$(id -g $USER) \
   --volume="/etc/passwd:/etc/passwd:ro" \
@@ -30,7 +31,6 @@ docker run --rm -h maple --name maple --group-add sudo --group-add video --add-h
   --volume="$HOME:$HOME" \
   --workdir="$(pwd)" \
   --privileged \
-  --pids-limit=-1 \
   $ARCH_D \
   rogueraptor7/$IMAGE_NAME:$IMAGE_TAG /bin/bash -c "mkdir -p build && cd build && cmake .. && make -j4"
 
