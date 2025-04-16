@@ -28,7 +28,7 @@ docker run --rm -h maple --name maple --group-add sudo --group-add video --add-h
   --user=$(id -u $USER):$(id -g $USER) \
   --volume="/etc/passwd:/etc/passwd:ro" \
   --volume="/etc/shadow:/etc/shadow:ro" \
-  --volume="$HOME:$HOME" \
+  --volume="$(pwd):$(pwd)" \
   --workdir="$(pwd)" \
   --privileged \
   $ARCH_D \
