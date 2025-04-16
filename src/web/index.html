@@ -110,7 +110,7 @@
 
 <!-- Info & Buttons -->
 <div id="info">No connection...</div>
-<button id="edit-config-btn" onclick="window.location.href='configure.html'">Edit Configuration</button>
+<button id="edit-config-btn" onclick="window.location.href='configure.html'">Settings</button>
 <button id="recenter-btn">Recenter</button>
 
 
@@ -250,7 +250,7 @@
 
                 infoDiv.textContent = `Global position - x: ${data.x.toFixed(2)}, y: ${data.y.toFixed(2)}, z: ${data.z.toFixed(2)} ` +
                     `roll: ${(data.roll).toFixed(2)}, pitch: ${(data.pitch).toFixed(2)}, yaw: ${(data.yaw).toFixed(2)} \n` +
-                    `Robot relative tag position ${data.rob_rel_id} - x: $ ${data.rob_rel_x.toFixed(2)}, y: ${data.rob_rel_y.toFixed(2)}, z: ${data.rob_rel_z.toFixed(2)}, yaw: ${data.rob_rel_yaw.toFixed(2)}`;
+                    `Robot relative tag position ${data.rob_rel_id} - x: ${data.rob_rel_x.toFixed(2)}, y: ${data.rob_rel_y.toFixed(2)}, z: ${data.rob_rel_z.toFixed(2)}, yaw: ${data.rob_rel_yaw.toFixed(2)}`;
             }
         } catch (error) {
             console.error('Error parsing WebSocket message:', error);

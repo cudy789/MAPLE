@@ -1,0 +1,13 @@
+[Unit]
+Description=Start Docker for MAPLE
+After=docker.service
+Requires=docker.service
+
+[Service]
+WorkingDirectory=/maple
+ExecStart=/bin/bash run.sh
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

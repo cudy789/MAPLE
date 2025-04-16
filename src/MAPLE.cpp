@@ -1,6 +1,6 @@
 #include "MAPLE.h"
 #include "CalibrationCamWorker.h"
-
+#include "Updater.h"
 
 void MAPLE::Setup(const std::string& config_file) {
     AppLogger::Logger::SetVerbosity(AppLogger::INFO);
@@ -17,6 +17,17 @@ void MAPLE::Setup(const std::string& config_file) {
 }
 
 void MAPLE::SetupHelper(const std::string& config_file){
+    // Parse the version string
+    std::ifstream v_file("version.txt");
+    if (v_file.is_open()){
+        std::string version;
+        getline(v_file, version);
+        _version = version;
+    } else{
+        AppLogger::Logger::Log("Unable to get MAPLE version", AppLogger::SEVERITY::ERROR);
+        _version = "Unknown";
+    }
+    v_file.close();
 
     // Parse map and configuration files
     _params = ConfigParser::ParseConfig(config_file);
@@ -97,6 +108,10 @@ void MAPLE::Join(){
         _is_finished_sem.release();
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     } while(!is_finished);
+}
+
+std::string MAPLE::GetVersion() {
+    return _version;
 }
 
 void MAPLE::Stop(){

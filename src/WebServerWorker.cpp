@@ -1,5 +1,6 @@
 #include "WebServerWorker.h"
 #include "nlohmann/json.hpp"
+#include "Updater.h"
 
 WebServerWorker::WebServerWorker(unsigned short port) :
         Worker{"Webserver worker", true, 30.0},  // Call Worker constructor
@@ -73,6 +74,56 @@ void WebServerWorker::Init() {
            [](mg_connection *conn, int ev, void *ev_data) {
                if (ev == MG_EV_HTTP_MSG) {
                    struct mg_http_message *hm = (struct mg_http_message *) ev_data;
+                   if (mg_match(hm->uri, mg_str("/api/get-version"), NULL)) {
+                       std::string version = MAPLE::GetInstance().GetVersion();
+                       mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%s", version.c_str());
+                       AppLogger::Logger::Log("Version request received, sending: " + version);
+                   }
+                   else if (mg_match(hm->uri, mg_str("/api/upload-update"), NULL)) {
+                       // File upload logic
+                       struct mg_http_part part;
+                       size_t ofs = 0;
+                       bool success = false;
+                       std::string filename;
+                       std::string filepath;
+
+                       while ((ofs = mg_http_next_multipart(hm->body, ofs, &part)) > 0) {
+                           if (part.filename.len > 0) {
+                               // Create file path (e.g., "/upload.syrup")
+                               filename = std::string(part.filename.buf, part.filename.len);
+                               filepath = "/tmp/" + filename;
+
+                               std::ofstream outfile(filepath, std::ios::binary);
+                               if (outfile) {
+                                   outfile.write(part.body.buf, (long)part.body.len);
+                                   outfile.close();
+                                   success = true;
+                               } else{
+                                   AppLogger::Logger::Log("Failed to open " + filepath + " for writing", AppLogger::SEVERITY::ERROR);
+                               }
+                           }
+                       }
+
+                       if (success) {
+                           AppLogger::Logger::Log("Received file " + filename);
+                           std::string version;
+                           if (Updater::Update(filepath)){
+
+                               mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "Successfully updated MAPLE");
+                               AppLogger::Logger::Log("Successfully updated MAPLE");
+                               AppLogger::Logger::Log("Gracefully stopping MAPLE to update");
+                               auto* server = static_cast<WebServerWorker*>(conn->mgr->userdata);
+                               server->_stop_requested = true;
+
+                           } else {
+                               mg_http_reply(conn, 500, "Content-Type: text/plain\r\n", "Failed to update MAPLE");
+                               AppLogger::Logger::Log("Failed to update MAPLE", AppLogger::SEVERITY::ERROR);
+                           }
+                       } else {
+                           mg_http_reply(conn, 500, "Content-Type: text/plain\r\n", "Failed to download update");
+                           AppLogger::Logger::Log("Failed to download update", AppLogger::SEVERITY::ERROR);
+                       }
+                   }
                    if (mg_match(hm->uri, mg_str("/api/get-config"), NULL)) {
                        AppLogger::Logger::Log("Trying to get config for webpage editor");
                        std::ifstream file("../config.yml");
@@ -255,7 +306,14 @@ void WebServerWorker::Execute() {
             MAPLE::GetInstance().Restart();
         }).detach();
         _restart_requested = false;
+    }
 
+    if (_stop_requested){
+        AppLogger::Logger::Log("MAPLE stop requested", AppLogger::SEVERITY::WARNING);
+        std::thread([this]() {
+            exit(0);
+        }).detach();
+        _stop_requested = false;
     }
     mg_mgr_poll(&_mgr, 0);
 

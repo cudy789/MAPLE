@@ -94,6 +94,12 @@ public:
      */
     void Restart();
 
+    /**
+     * @brief Get MAPLE version.
+     * @return The version.
+     */
+    std::string GetVersion();
+
 private:
     MAPLE() = default;
 
@@ -106,6 +112,8 @@ private:
     MAPLEParams _params;
 
     std::string _config_file;
+
+    std::string _version;
 
     bool _is_finished = false;
     std::binary_semaphore _is_finished_sem{1};

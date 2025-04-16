@@ -32,6 +32,92 @@
             z-index: 100;
             margin-bottom: 20px;
         }
+        .card {
+            background: rgba(30, 30, 30, 0.9);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            color: #e0e0e0;
+            width: 50%;
+            text-align: center;
+        }
+
+        /* Center buttons */
+        #updateForm {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Custom file input */
+        .custom-file-input {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            background: #2b392b;
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 15px;
+            padding: 10px 20px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border: none;
+        }
+
+        .custom-file-input input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            height: 100%;
+            width: 100%;
+            display: block;
+            margin: 10px 0 20px 0; /* more bottom margin */
+        }
+
+        #filenameDisplay {
+            margin-bottom: 15px;
+        }
+
+        .progress-spinner {
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .progress-spinner svg {
+            animation: rotate 1s linear infinite;
+        }
+
+        .progress-spinner .path {
+            stroke: #4CAF50;
+            stroke-linecap: round;
+            animation: dash 1.5s ease-in-out infinite;
+        }
+
+        @keyframes rotate {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes dash {
+            0% {
+                stroke-dasharray: 1, 150;
+                stroke-dashoffset: 0;
+            }
+            50% {
+                stroke-dasharray: 90, 150;
+                stroke-dashoffset: -35;
+            }
+            100% {
+                stroke-dasharray: 90, 150;
+                stroke-dashoffset: -124;
+            }
+        }
 
         #content-wrapper {
             display: flex;
@@ -143,6 +229,62 @@
         * {
             transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
         }
+
+        #tab-buttons {
+            position: fixed;
+            top: 10px;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            background: #2b2b2b;
+            border: none;
+            color: #e0e0e0;
+            padding: 10px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .tab-button.active, .tab-button:hover {
+            background-color: #333;
+            color: #4CAF50;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #uploadButton {
+            padding: 10px 20px;
+            background: #2b392b;
+            color: #4CAF50;
+            font-size: 15px !important;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+
+        #uploadButton:hover {
+            background-color: #305e30;
+        }
+
+        #uploadButton:disabled,
+        .custom-file-input.disabled {
+            background-color: #555555FF !important;
+            color: #888888FF !important;
+            cursor: not-allowed;
+        }
+
     </style>
 </head>
 <body>
@@ -151,19 +293,54 @@
 
 <!--<h1>Configuration</h1>-->
 
-<div id="content-wrapper">
-    <!-- Left: MJPEG Video Container -->
-    <div id="mjpeg-container">
-        <img id="mjpeg-stream" alt="MJPEG Stream">
-    </div>
+<div id="tab-buttons">
+    <button class="tab-button active" onclick="openTab('camera-tab')">Camera properties</button>
+    <button class="tab-button" onclick="openTab('ip-tab')">Set IP</button>
+    <button class="tab-button" onclick="openTab('update-tab')">Update</button>
+</div>
 
-    <!-- Right: CodeMirror + Save -->
-    <div id="editor-container">
-        <textarea id="editor"></textarea>
-        <button id="saveButton">Save & Restart</button>
+<div class="tab-content" id="camera-tab">
+    <div id="content-wrapper">
+        <div id="mjpeg-container">
+            <img id="mjpeg-stream" alt="MJPEG Stream">
+        </div>
+        <div id="editor-container">
+            <textarea id="editor"></textarea>
+            <button id="saveButton">Save & Restart</button>
+        </div>
     </div>
 </div>
 
+<div class="tab-content" id="ip-tab" style="display:none;">
+    <div class="card" id="ipCard">
+        <p>Set IP configuration will go here.</p>
+    </div>
+</div>
+
+<div class="tab-content" id="update-tab" style="display:none;">
+    <div class="card" id="versionCard">
+        <p><strong>Current version:</strong> <span id="versionText">Loading...</span></p>
+    </div>
+
+    <div class="card">
+        <form id="updateForm">
+            <label class="custom-file-input">
+                Select file
+                <input type="file" id="updateFile" name="updateFile" accept=".syrup" required>
+            </label>
+            <div id="filenameDisplay"></div>
+
+            <div class="progress-spinner" style="display:none;">
+                <svg width="60" height="60" viewBox="0 0 50 50">
+                    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
+                </svg>
+            </div>
+
+            <button type="submit" id="uploadButton">Update & restart</button>
+        </form>
+        <p id="uploadStatus" style="margin-top: 10px;"></p>
+    </div>
+</div>
 
 <script type="module">
 
@@ -217,7 +394,118 @@
         }
     });
 
-    window.onload = loadConfig;
+    let activeTab = null;
+
+    function openTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+            tab.style.display = 'none';
+        });
+
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        document.getElementById(tabId).style.display = 'block';
+        event.currentTarget.classList.add('active');
+
+        // Handle resource cleanup/unload for old tab
+        if (activeTab === 'camera-tab') {
+            // Unload MJPEG stream
+            document.getElementById('mjpeg-stream').src = '';
+        }
+
+        // Handle lazy loading for new tab
+        if (tabId === 'camera-tab') {
+            document.getElementById('mjpeg-stream').src = streamUrl;
+            loadConfig();
+        } else if (tabId === 'update-tab') {
+            fetchVersion();
+        }
+
+        activeTab = tabId;
+    }
+
+    window.openTab = openTab;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        // Trigger initial tab
+        document.querySelector('.tab-button.active')?.click();
+    });
+
+
+
+    document.getElementById('updateForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById('updateFile');
+        const status = document.getElementById('uploadStatus');
+        const fileLabel = document.querySelector('.custom-file-input');
+        if (!fileInput.files.length) return;
+
+        const confirmed = confirm("Are you sure you want to update and restart MAPLE?");
+        if (!confirmed) return;
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        spinner.style.display = 'flex';
+        status.style.color = "#e0e0e0";
+        status.textContent = "Uploading, stay on this page...";
+        uploadButton.disabled = true;
+        fileInput.disabled = true;
+        fileLabel.classList.add('disabled');
+
+        try {
+            const response = await axios.post('/api/upload-update', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            status.textContent = "Update successful! Restarting MAPLE..";
+            status.style.color = "#4CAF50";
+
+            // Wait 5 seconds then reload
+            setTimeout(() => {
+                window.location.reload();
+            }, 5000);
+        } catch (error) {
+            status.textContent = `Upload failed: ${error.response.data}`;
+            status.style.color = "#f44336";
+            console.error(error);
+        }
+        spinner.style.display = 'none';
+    });
+
+    async function fetchVersion() {
+        try {
+            const response = await axios.get('/api/get-version');
+            document.getElementById('versionText').textContent = response.data || 'Unknown';
+        } catch (error) {
+            document.getElementById('versionText').textContent = 'Failed to fetch version';
+            console.error(error);
+        }
+    }
+
+    const fileInput = document.getElementById('updateFile');
+    const filenameDisplay = document.getElementById('filenameDisplay');
+    const spinner = document.querySelector('.progress-spinner');
+    const uploadButton = document.getElementById('uploadButton');
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    // Disable button initially
+    uploadButton.disabled = true;
+
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (file) {
+            uploadButton.disabled = false;
+            filenameDisplay.textContent = `Selected: ${file.name}`;
+            uploadStatus.textContent = "";
+        } else {
+            uploadButton.disabled = true;
+            filenameDisplay.textContent = '';
+        }
+    });
+
+
 </script>
 </body>
 </html>

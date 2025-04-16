@@ -22,5 +22,5 @@ cameras:
     # Camera roll, pitch, yaw orientation on the robot, in degrees
     rotation: [ 0, 0, 0 ]
 
-    fps: 100.0
-    exposure: 1000
+    fps: 30.0
+    exposure: 500

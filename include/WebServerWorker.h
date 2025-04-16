@@ -78,4 +78,5 @@ private:
     std::binary_semaphore _robot_pose_func_sem{1};
 
     std::atomic<bool> _restart_requested = false;
+    std::atomic<bool> _stop_requested = false;
 };

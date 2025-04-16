@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Determine RELEASE_VERSION based on CLI argument or default
+if [ $# -ge 1 ]; then
+    RELEASE_VERSION="$1"
+else
+    RELEASE_VERSION="MAPLE-R25-0-1"
+fi
+
+if [ "$ARM" = "1" ] || [ "$( uname -m )" = "aarch64" ]; then
+  ARCH="arm64"
+else
+  ARCH="x86"
+fi
+mkdir -p release/"$ARCH"
+
+# Build MAPLE
+rm -rf build
+bash scripts/run-common.sh "mkdir -p build && cd build && cmake .. && make -j4"
+# Make sure there aren't any logfiles
+rm -rf build/logs/*
+
+# Copy over the latest .fmap file
+cp fmap/field.fmap build
+
+# Check if a file with the name RELEASE_VERSION exists, and delete it
+if [ -f "$RELEASE_VERSION".txt ]; then
+    echo "File '$RELEASE_VERSION.txt' exists. Deleting..."
+    rm "$RELEASE_VERSION".txt
+fi
+
+# Generate the release version file
+echo $RELEASE_VERSION > build/version.txt
+
+# Create the .syrup release file
+cd build && zip -r ../release/"$ARCH"/"$RELEASE_VERSION"_"$ARCH".syrup .
