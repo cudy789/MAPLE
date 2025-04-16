@@ -2,8 +2,7 @@
 name: Create a MAPLE .syrup release
 
 on:
-  pull_request:
-    branches: [ "main" ]
+  push:
     paths: [ "include/**", "src/**", "lib/**", "test/**", "CMakeLists.txt", "fmap/**" ]
 
 jobs:
