@@ -23,7 +23,7 @@ mkdir -p release/"$ARCH"
 # Build MAPLE
 rm -rf build
 
-echo "Going to build"
+echo "Create release using image $IMAGE_NAME:$IMAGE_TAG"
 docker run --rm -h maple --name maple --group-add sudo --group-add video --add-host $IMAGE_NAME-$HOSTNAME:127.0.0.1 --network host \
   --user=$(id -u $USER):$(id -g $USER) \
   --volume="/etc/passwd:/etc/passwd:ro" \
