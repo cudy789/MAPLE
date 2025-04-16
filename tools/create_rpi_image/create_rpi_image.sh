@@ -59,7 +59,6 @@ sudo chroot /mnt/pi-root /bin/bash -c "usermod -aG sudo pi"
 sudo chroot /mnt/pi-root /bin/bash -c "systemctl enable ssh" # Enable ssh server
 sudo cp ../../install.sh /mnt/pi-root/install.sh
 sudo chroot /mnt/pi-root /bin/bash -c "chmod +x /install.sh && SKIP_STATIC_IP=1 bash /install.sh"
-sudo chroot /mnt/pi-root /bin/bash -c "usermod -aG docker pi"
 
 
 # Point Docker storage to inside the mounted image
@@ -67,9 +66,9 @@ sudo echo '{ "data-root": "/mnt/pi-root/var/lib/docker" }' | sudo tee /etc/docke
 echo "Changed Docker data root directory, restarting Docker..."
 sudo systemctl restart docker
 
-sudo chroot /mnt/pi-root /bin/bash -c "cd maple-config && docker-compose pull"
-sudo cp maple-docker-compose-init.service /mnt/pi-root/etc/systemd/system/maple-docker-compose-init.service
-sudo chroot /mnt/pi-root systemctl enable maple-docker-compose-init.service
+sudo chroot /mnt/pi-root /bin/bash -c "cd maple && docker pull rogueraptor7/maple:latest"
+sudo cp maple-docker-init.service /mnt/pi-root/etc/systemd/system/maple-docker-init.service
+sudo chroot /mnt/pi-root systemctl enable maple-docker-init.service
 
 # Cleanup
 echo "Cleanup"

@@ -221,7 +221,7 @@ public:
             if (parser["fmap_file"]){
                 params.fmap_file = parser["fmap_file"].as<std::string>();
             } else{
-                params.fmap_file="../fmap/field.fmap";
+                params.fmap_file="./field.fmap";
             }
             AppLogger::Logger::Log("fmap_file: " + params.fmap_file);
 

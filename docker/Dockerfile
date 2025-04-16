@@ -29,13 +29,8 @@ RUN pip install sphinx_rtd_theme sphinx-tabs pexpect
 
 RUN pip install numpy==1.23.1 scipy pandas pybullet pyyaml opencv-python matplotlib
 
-# ============ Build and run MAPLE ============
-ARG CACHE_BUST
+RUN apt-get update && apt-get install -y zip unzip
+
+# ============ Make mountpoint for MAPLE binaries ============
 
 RUN mkdir /app
-WORKDIR /app
-RUN git clone https://github.com/cudy789/MAPLE.git
-WORKDIR MAPLE
-RUN mkdir -p build
-WORKDIR build
-RUN cmake .. && make -j4

@@ -47,6 +47,9 @@ include_directories(lib/Eigen)
 # Find Mongoose
 add_library(mongoose STATIC lib/mongoose/mongoose.c)
 target_include_directories(mongoose PUBLIC lib/mongoose)
+target_compile_definitions(mongoose PUBLIC MG_MAX_RECV_SIZE=125829120) # 120 * 1024 * 1024, 120MB for .syrup update files
+target_compile_definitions(mongoose PRIVATE MG_IO_SIZE=131072) # 128KB chunk sizes
+
 
 # Recursively copy all web files (html, js, models) to build directory
 
