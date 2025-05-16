@@ -3,7 +3,8 @@ name: Create a MAPLE .syrup release
 
 on:
   push:
-    paths: [ "include/**", "src/**", "lib/**", "test/**", "CMakeLists.txt", "fmap/**", "scripts/create-release.sh", "tools/create_rpi_image/**" ]
+    paths: [ "include/**", "src/**", "lib/**", "test/**", "CMakeLists.txt", "fmap/**", "scripts/create-release.sh", "tools/create_rpi_image/**", ".github/workflows/create-release.yml" ]
+  pull_request:
 
 jobs:
   create-arm-release:
@@ -23,7 +24,7 @@ jobs:
           name: MAPLE-R25-0-${{ github.run_attempt }}_arm64.syrup
           path: |
             release/arm64/MAPLE-R25-0-${{ github.run_attempt }}_arm64.syrup
-          retention-days: 120
+          retention-days: 90
 
   create-x86-release:
     runs-on: X64
@@ -41,5 +42,5 @@ jobs:
         with:
           name: MAPLE-R25-0-${{ github.run_attempt }}_x86.syrup
           path: |
-            release/arm64/MAPLE-R25-0-${{ github.run_attempt }}_x86.syrup
-          retention-days: 120
+            release/x86/MAPLE-R25-0-${{ github.run_attempt }}_x86.syrup
+          retention-days: 90
