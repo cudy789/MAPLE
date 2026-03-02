@@ -27,8 +27,8 @@ set(WITH_JAVA_SOURCE OFF CACHE BOOL "" FORCE)
 set(WITH_DOCS OFF CACHE BOOL "" FORCE)
 set(WITH_CSCORE OFF CACHE BOOL "" FORCE)
 set(WITH_NTCORE ON CACHE BOOL "" FORCE)  # Make sure ntcore is enabled
-set(WITH_WPIMATH OFF CACHE BOOL "" FORCE)
-set(WITH_WPIUNITS OFF CACHE BOOL "" FORCE)
+set(WITH_WPIMATH ON CACHE BOOL "" FORCE)
+set(WITH_WPIUNITS ON CACHE BOOL "" FORCE)
 set(WITH_WPILIB OFF CACHE BOOL "" FORCE)
 set(WITH_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(WITH_TESTS OFF CACHE BOOL "" FORCE)
@@ -50,14 +50,15 @@ target_include_directories(mongoose PUBLIC lib/mongoose)
 target_compile_definitions(mongoose PUBLIC MG_MAX_RECV_SIZE=125829120) # 120 * 1024 * 1024, 120MB for .syrup update files
 target_compile_definitions(mongoose PRIVATE MG_IO_SIZE=131072) # 128KB chunk sizes
 
-
 # Recursively copy all web files (html, js, models) to build directory
 
 set(WEB_FILE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/web")
+set(FMAP_FILE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/fmap")
 
 set(WEB_FILE_DST "${CMAKE_CURRENT_BINARY_DIR}")
 
 file(COPY ${WEB_FILE_SRC} DESTINATION ${WEB_FILE_DST})
+file(COPY ${FMAP_FILE_SRC} DESTINATION ${WEB_FILE_DST})
 #file(GLOB_RECURSE WEB_FILES "${WEB_FILE_SRC}/*")
 #
 ## Iterate over each file
@@ -100,7 +101,7 @@ add_subdirectory(lib/yaml-cpp)
 # Json parser
 add_subdirectory(lib/json)
 
-target_link_libraries(maple PUBLIC yaml-cpp::yaml-cpp ${OpenCV_LIBS} ntcore apriltag PRIVATE nlohmann_json::nlohmann_json mongoose)
+target_link_libraries(maple PUBLIC yaml-cpp::yaml-cpp ${OpenCV_LIBS} ntcore wpimath apriltag PRIVATE nlohmann_json::nlohmann_json mongoose)
 
 # Option to enable or disable tests
 option(ENABLE_TESTS "Enable building tests" OFF)

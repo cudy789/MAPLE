@@ -16,6 +16,10 @@ void MAPLE::Setup(const std::string& config_file) {
 
 }
 
+std::string MAPLE::GetFMAPFilename() {
+    return _params.fmap_file;
+}
+
 void MAPLE::SetupHelper(const std::string& config_file){
     // Parse the version string
     std::ifstream v_file("version.txt");

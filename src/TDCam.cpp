@@ -155,6 +155,26 @@ void TDCam::Undistort(cv::Mat &img){
     cv::undistort(input, img, _camera_matrix, _dist_coeffs);
 }
 
+Pose_single TDCam::CameraPoseToGlobal(const Eigen::Vector3d& T_ct, const Eigen::Matrix3d& R_ct,
+                               const Eigen::Vector3d& T_wt, const Eigen::Matrix3d& R_wt){
+    // Tag in camera's frame
+    // Tag in world frame
+    // Output: camera in world frame
+
+    Pose_single camera_in_world;
+
+    // Invert tag_in_camera (T_CT -> T_TC)
+    Eigen::Matrix3d R_TC = R_ct.transpose();
+    Eigen::Vector3d t_TC = -R_TC * T_ct;
+
+    // Compose transformations: T_WC = T_WT * T_TC
+    camera_in_world.R = R_wt * R_TC;
+    camera_in_world.T = R_wt * t_TC + T_wt;
+
+    return camera_in_world;
+
+}
+
 TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
     TagArray detected_tags;
     // Convert img to grayscale
@@ -218,17 +238,8 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
             apriltag_pose_t* pose = calculated_poses[j]; // get the pose and corresponding error
             double err = calculated_errors[j];
 
-            Eigen::Matrix3d R_tag_local_fix = CreateRotationMatrix({0,0,0}) * CreateRotationMatrix({-90,0,0});
-//            Eigen::Matrix3d T_tag_global_fix = CreateRotationMatrix({-90, 90, 0}); // working without any tag rotation
-            Eigen::Matrix3d T_tag_global_fix = GetRotTranslationFix();
-            Eigen::Matrix3d R_tag_global_fix = GetRotRotationFix();
-//            Eigen::Matrix3d T_tag_global_fix_2 = GetRotTranslationFix();
-
-
             Eigen::Vector3d T_tag_camera_raw = Array2EM<double, 3, 1>(pose->t->data);
             Eigen::Matrix3d R_tag_camera_raw = Array2EM<double, 3, 3>(pose->R->data);
-//            Eigen::Matrix3d R_tag_camera = R_tag_local_fix * R_tag_camera_raw;
-
 
             // Get the location of the apriltag in the world frame
             Pose_single Pose_AG; // the field transformation from apriltag frame to global field frame as specified in the .fmap file
@@ -241,98 +252,94 @@ TagArray TDCam::GetTagsFromImage(const cv::Mat &img) {
                 continue;
             }
 
-            // ============= Global Frame =============
-            Eigen::Matrix3d R_robot_global_unordered = Pose_AG.R * ((R_tag_global_fix * R_tag_camera_raw.transpose()));
-            Eigen::Vector3d T_robot_global_unordered = Pose_AG.T - _c_params.R_camera_robot.transpose() * (T_tag_global_fix * (
-                       _c_params.R_camera_robot * Pose_AG.R * ((R_tag_global_fix * R_tag_camera_raw.transpose()))
-                    ) * T_tag_camera_raw + _c_params.R_camera_robot * _c_params.T_camera_robot);
 
-            Eigen::Vector3d T_robot_global = {T_robot_global_unordered[0], T_robot_global_unordered[1], T_robot_global_unordered[2]};
+            // ==================== Frames and transforms ====================
+            //
+            // Frame conventions:
+            //   Global:  East-north-up → +x right, +y up, +z out of page
+            //   Robot:   +x forward, +y left, +z up
+            //   Camera (AprilTag lib): +x right, +y down, +z into scene (forward)
+            //   Tag in camera (AprilTag3): +x right on tag, +y down on tag, +z into tag
+            //   Tag in .fmap: +x out of tag (toward viewer), +y right on tag, +z up
+            //
+            // With camera extrinsics [0,0,0,0,0,0] the camera frame is aligned with the robot frame
+            // (after the fixed conversion from optical to robot axes below).
+            //
+            // Camera translation (x,y,z) = camera position in robot frame. Applied AFTER the
+            // optical_to_robot rotation (and any extrinsic rotation), so the offset is in robot axes.
 
-            Eigen::Vector3d R_robot_ordered_vec = RotationMatrixToRPY(R_robot_global_unordered);
-            R_robot_ordered_vec[0] += 90;
-            if (R_robot_ordered_vec[0] >=180) R_robot_ordered_vec[0] -= 180;
-            Eigen::Vector3d c_extrinsic_rotation = RotationMatrixToRPY(_c_params.R_camera_robot);
-            Eigen::Matrix3d R_robot_global = CreateRotationMatrix({R_robot_ordered_vec[1]-c_extrinsic_rotation[0], R_robot_ordered_vec[0]-c_extrinsic_rotation[1], R_robot_ordered_vec[2]-c_extrinsic_rotation[2]});
+            // 1) Optical frame -> robot frame: robot +x = camera +z, robot +y = -camera x, robot +z = -camera y.
+            Eigen::Matrix3d R_optical_to_robot;
+            R_optical_to_robot <<  0,  0,  1,
+                                 -1,  0,  0,
+                                  0, -1,  0;
 
-            // ============= Robot Frame =============
+            // 2) Extrinsic rotation (roll, pitch, yaw) in robot frame; then translation in robot frame.
+            //    Full camera-to-robot: p_robot = R_R_C * p_camera + T_camera_robot (T_camera_robot in robot frame).
+            Eigen::Matrix3d R_R_C = _c_params.R_camera_robot * R_optical_to_robot;
+            Eigen::Matrix4d T_R_C = makeTransform(R_R_C, _c_params.T_camera_robot);
 
-            Eigen::Matrix3d R_robot_unordered = ((R_tag_global_fix * R_tag_camera_raw.transpose()));
+            // 3) Tag in camera is in AprilTag3 frame. Convert to .fmap tag frame so we can use Pose_AG.
+            Eigen::Matrix3d R_taglayout_taglib;
+            R_taglayout_taglib << 0,  0, -1,
+                                 1,  0,  0,
+                                 0, -1,  0;
+            Eigen::Matrix3d R_taglib_taglayout = R_taglayout_taglib.transpose();
 
+            Eigen::Matrix4d T_C_Tat3 = makeTransform(R_tag_camera_raw, T_tag_camera_raw);
+            Eigen::Matrix4d T_Tat3_Tfmap = makeTransform(R_taglib_taglayout, Eigen::Vector3d::Zero());
+            Eigen::Matrix4d T_C_Tfmap = T_C_Tat3 * T_Tat3_Tfmap;
 
-//            Eigen::Vector3d T_robot_unordered = (_c_params.R_camera_robot.transpose() * T_tag_camera_raw) + _c_params.T_camera_robot;
-//
-//            Eigen::Vector3d T_robot = {-T_robot_unordered[1], T_robot_unordered[2], T_robot_unordered[0]};
-            Eigen::Vector3d cam_rpy_raw = RotationMatrixToRPY(_c_params.R_camera_robot);
-            cam_rpy_raw[2] += 90;
-            cam_rpy_raw[2] *= -1;
-            //                                base dist (x)             offset center of robot  (yaw * y dist)                                 account for dependent axis (pitch * y dist)
-            Eigen::Vector3d T_robot = {T_tag_camera_raw[0] - sin(Deg2Rad(cam_rpy_raw[2])) * T_tag_camera_raw[2] + sin(Deg2Rad(cam_rpy_raw[1])) * T_tag_camera_raw[2],
-            //                                base dist (y)             offset center of robot  (pitch * z dist)                               account for dependent axis (yaw * x dist)
-                                       T_tag_camera_raw[2] - sin(Deg2Rad(cam_rpy_raw[1])) * T_tag_camera_raw[1] + sin(Deg2Rad(cam_rpy_raw[2])) * T_tag_camera_raw[0],
-                                       T_tag_camera_raw[1]
-            };
+            // 4) Tag pose in robot frame: (robot <- camera) * (camera <- tag). Translation is in robot frame.
+            Eigen::Matrix4d T_R_T = T_R_C * T_C_Tfmap;
+            Eigen::Matrix3d R_robot = getRot(T_R_T);
+            Eigen::Vector3d T_robot = getTrans(T_R_T);
 
-            T_robot[0] += -_c_params.T_camera_robot[1];
-            T_robot[1] += _c_params.T_camera_robot[0];
-            T_robot[2] += _c_params.T_camera_robot[2];
+            // 5) Robot pose in global: global <- robot = (global <- tag) * (tag <- robot).
+            Eigen::Matrix4d T_G_T = makeTransform(Pose_AG.R, Pose_AG.T);
+            Eigen::Matrix4d T_T_R = invertTransform(T_R_T);
+            Eigen::Matrix4d T_G_R = T_G_T * T_T_R;
+            Eigen::Matrix3d R_global = getRot(T_G_R);
+            Eigen::Vector3d T_global = getTrans(T_G_R);
 
-//            AppLogger::Logger::Log("cam_rpy_raw: " + to_string(cam_rpy_raw));
-//            AppLogger::Logger::Log("T_tag_camera_raw: " + to_string(T_tag_camera_raw));
-
-//            Eigen::Vector3d R_robot_robot_ordered_vec = RotationMatrixToRPY(R_robot_unordered);
-//            R_robot_robot_ordered_vec[0] += 90;
-//            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
-//
-//            R_robot_robot_ordered_vec[2] += 180;
-//            if (R_robot_robot_ordered_vec[0] >=180) R_robot_robot_ordered_vec[0] -= 180;
-//
-//            //Eigen::Vector3d c_extrinsic_rotation = RotationMatrixToRPY(_c_params.R_camera_robot);
-//            Eigen::Matrix3d R_robot = CreateRotationMatrix({R_robot_robot_ordered_vec[1]-c_extrinsic_rotation[0], R_robot_robot_ordered_vec[0]-c_extrinsic_rotation[1], R_robot_robot_ordered_vec[2]-c_extrinsic_rotation[2]});
-
-            Eigen::Vector3d R_camera_raw_rpy = RotationMatrixToRPY(R_tag_camera_raw);
-
-            Eigen::Matrix3d R_robot = CreateRotationMatrix({R_camera_raw_rpy[2], R_camera_raw_rpy[0], R_camera_raw_rpy[1] - cam_rpy_raw[2]});
-
-//            AppLogger::Logger::Log("Tag rotation: " + to_string(R_camera_raw_rpy[1]) + ", robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)[2]));
-//            AppLogger::Logger::Log("#### CKNUTSON robot relative tag rotation: " + to_string(RotationMatrixToRPY(R_robot)));
-
-
-
+            AppLogger::Logger::Log("Pose_AG.T: " + to_string(Pose_AG.T));
+            AppLogger::Logger::Log("RotationMatrixToRPY(Pose_AG.R): " + to_string(RotationMatrixToRPY(Pose_AG.R)));
+            AppLogger::Logger::Log("T_tag_camera_raw: " + to_string(T_tag_camera_raw));
+            AppLogger::Logger::Log("RotationMatrixToRPY(R_tag_camera_raw): " + to_string(RotationMatrixToRPY(R_tag_camera_raw)));
+            AppLogger::Logger::Log("T_robot: " + to_string(T_robot));
+            AppLogger::Logger::Log("RotationMatrixToRPY(R_robot): " + to_string(RotationMatrixToRPY(R_robot)));
+            AppLogger::Logger::Log("T_global: " + to_string(T_global));
+            AppLogger::Logger::Log("RotationMatrixToRPY(R_global): " + to_string(RotationMatrixToRPY(R_global)));
 
             // ==================== Now make the Pose_t object ====================
 
-            Pose new_tag;
-            new_tag.cam_id = _c_params.camera_id;
-            new_tag.tag_id = det->id;
-            new_tag.err = err * 1e5;
-            // Tag frame
-            new_tag.tag.R = Eigen::Matrix3d::Constant(0);
-            new_tag.tag.T = Eigen::Vector3d::Constant(0);
-            // Camera frame
-            new_tag.camera.R = R_tag_camera_raw;
-            new_tag.camera.T = T_tag_camera_raw;
-            // Robot frame
-            new_tag.robot.R = R_robot;
-            new_tag.robot.T = T_robot;
-            // Global frame
-            new_tag.global.R = R_robot_global;
-            new_tag.global.T = T_robot_global;
+            Pose new_robot_pose;
+            new_robot_pose.cam_id = _c_params.camera_id;
+            new_robot_pose.tag_id = det->id;
+            new_robot_pose.err = err * 1e5;
+            // Tag frame (unused for now).
+            new_robot_pose.tag.R = Eigen::Matrix3d::Constant(0);
+            new_robot_pose.tag.T = Eigen::Vector3d::Constant(0);
+            // Tag pose relative to camera frame.
+            new_robot_pose.camera.R = R_tag_camera_raw;
+            new_robot_pose.camera.T = T_tag_camera_raw;
+            // Tag pose relative to robot frame.
+            new_robot_pose.robot.R = R_robot;
+            new_robot_pose.robot.T = T_robot;
+            // Robot pose in global field frame.
+            new_robot_pose.global.R = R_global;
+            new_robot_pose.global.T = T_global;
 
             // CV pixel coords for outlining tag on image
-            new_tag.c[0] = det->c[0];
-            new_tag.c[1] = det->c[1];
+            new_robot_pose.c[0] = det->c[0];
+            new_robot_pose.c[1] = det->c[1];
             for (int  k = 0; k < 4; k++) {
                 for (int l = 0; l < 2; l++) {
-                    new_tag.p[k][l] = det->p[k][l];
+                    new_robot_pose.p[k][l] = det->p[k][l];
                 }
             }
 
-//            AppLogger::Logger::Log("Processed tag " + to_string(new_tag), AppLogger::SEVERITY::DEBUG);
-//            AppLogger::Logger::Log("Tag " + to_string(det->id) + " known global location: " + to_string(Pose_AG.T), AppLogger::SEVERITY::DEBUG);
-
-            // Add tag to detected TagArray object
-            detected_tags.AddTag(new_tag);
+            detected_tags.AddTag(new_robot_pose);
 
             if (pose->R) matd_destroy(pose->R);
             if (pose->t) matd_destroy(pose->t);

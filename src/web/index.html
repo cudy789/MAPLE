@@ -195,7 +195,7 @@
     } );
 
     const axes = new THREE.AxesHelper( 1 );
-    axes.rotation.set(0, -Math.PI/2, Math.PI/2)
+    axes.rotation.set(0, -Math.PI/2, Math.PI)
     robot_group.add(axes);
 
     const gridHelper = new THREE.GridHelper(100, 100);
@@ -231,7 +231,123 @@
 
     infoDiv.setAttribute('style', 'white-space: pre;');
 
+    // Load FMAP file from MAPLE
+    async function loadFMap(url) {
+        const response = await fetch(url);
+        const json = await response.json();
+        return json.fiducials;
+    }
+    function objectFromFMapTransform(transformArray) {
+        const obj = new THREE.Object3D();
 
+        // Load matrix (row-major → Three.js handles conversion)
+        const m = new THREE.Matrix4();
+        m.fromArray(transformArray);
+
+        // Decompose into position / rotation / scale
+        m.decompose(obj.position, obj.quaternion, obj.scale);
+
+        return obj;
+    }
+    function createTextSprite(text) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.font = '48px monospace';
+        ctx.fillStyle = 'white';
+        ctx.fillText(text, 10, 50);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(material);
+
+        sprite.scale.set(0.5, 0.25, 1);
+        return sprite;
+    }
+    function createENUAxes(length = 1) {
+        const group = new THREE.Group();
+
+        const xMat = new THREE.LineBasicMaterial({ color: 0xff0000 }); // East
+        const yMat = new THREE.LineBasicMaterial({ color: 0x00ff00 }); // North
+        const zMat = new THREE.LineBasicMaterial({ color: 0x0000ff }); // Up
+
+        const eastGeom = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(1, 0, 0)
+        ]);
+
+        const northGeom = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, -1)
+        ]);
+
+        const upGeom = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 1, 0)
+        ]);
+
+        group.add(new THREE.Line(eastGeom, xMat));   // Red = East
+        group.add(new THREE.Line(northGeom, yMat));  // Green = North
+        group.add(new THREE.Line(upGeom, zMat));     // Blue = Up
+
+        group.scale.set(length, length, length);
+
+        // Rotate ENU frame by -90° about Z
+        // group.rotation.z = -Math.PI / 2;
+
+        return group;
+    }
+
+    const enuAxes = createENUAxes(1.0);
+    scene.add(enuAxes);
+
+    const ENU_TO_THREE = new THREE.Matrix4().set(
+        0,  0, -1, 0,   // X = -North
+        -1,  0,  0, 0,   // Y = -East
+        0,  1,  0, 0,   // Z = Up
+        0,  0,  0, 1
+    );
+
+    const aprilTagGroup = new THREE.Group();
+    scene.add(aprilTagGroup);
+
+    loadFMap('./api/get-fmap').then(fiducials => {
+        fiducials.forEach(tag => {
+
+            // Create pose object from fmap transform
+            const tagPose = objectFromFMapTransform(tag.transform);
+
+            // Apply ENU → Three.js conversion
+            tagPose.applyMatrix4(ENU_TO_THREE);
+
+            // Create visual tag mesh
+            const sizeMeters = tag.size / 1000; // mm → meters
+            const geometry = new THREE.PlaneGeometry(sizeMeters, sizeMeters);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide
+            });
+
+            const tagMesh = new THREE.Mesh(geometry, material);
+            tagMesh.rotateX(-Math.PI / 2);
+
+            tagPose.add(tagMesh);
+
+            // Add tag axes
+            tagPose.add(new THREE.AxesHelper(sizeMeters * 0.6));
+
+            // Add ID label
+            const label = createTextSprite(`Tag ${tag.id}`);
+            label.position.set(0, sizeMeters * 0.6, 0);
+            tagPose.add(label);
+
+            aprilTagGroup.add(tagPose);
+        });
+    });
+
+
+
+
+    // Open socket connection to MAPLE instance
     socket.onopen = () => {
         console.log('WebSocket connection established');
         infoDiv.textContent = 'Connected'
@@ -246,11 +362,11 @@
 
                 // // Update robot's position & rotation
                 robot_group.position.set(-data.y, data.z, -data.x);
-                robot_group.rotation.set(data.pitch / 180 * Math.PI + Math.PI, -1*(data.yaw / 180 * Math.PI) + Math.PI, data.roll / 180 * Math.PI + Math.PI/2);
+                robot_group.rotation.set(data.pitch / 180 * Math.PI + Math.PI, (data.yaw / 180 * Math.PI), data.roll / 180 * Math.PI);
 
                 infoDiv.textContent = `Global position - x: ${data.x.toFixed(2)}, y: ${data.y.toFixed(2)}, z: ${data.z.toFixed(2)} ` +
                     `roll: ${(data.roll).toFixed(2)}, pitch: ${(data.pitch).toFixed(2)}, yaw: ${(data.yaw).toFixed(2)} \n` +
-                    `Robot relative tag position ${data.rob_rel_id} - x: ${data.rob_rel_x.toFixed(2)}, y: ${data.rob_rel_y.toFixed(2)}, z: ${data.rob_rel_z.toFixed(2)}, yaw: ${data.rob_rel_yaw.toFixed(2)}`;
+                    `Robot relative tag position ${data.rob_rel_id} - x: ${data.rob_rel_x.toFixed(2)}, y: ${data.rob_rel_y.toFixed(2)}, z: ${data.rob_rel_z.toFixed(2)}, roll: ${data.rob_rel_roll.toFixed(2)}, pitch: ${data.rob_rel_pitch.toFixed(2)}, yaw: ${data.rob_rel_yaw.toFixed(2)}`;
             }
         } catch (error) {
             console.error('Error parsing WebSocket message:', error);

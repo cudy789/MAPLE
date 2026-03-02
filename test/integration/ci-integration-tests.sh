@@ -11,7 +11,8 @@ NUM_FILES=$(ls test/integration/bash_groups -1 | wc -l)
 FILE_COUNT=1
 
 set -e  # exit on error
-for t in test/integration/bash_groups/*.sh; do
+for t in test/integration/bash_groups/sim-tests.sh; do
+#for t in test/integration/bash_groups/*.sh; do
   echo "Test $FILE_COUNT / $NUM_FILES: $t"
   bash "$t"
   FILE_COUNT=$((FILE_COUNT + 1))

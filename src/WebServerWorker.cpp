@@ -124,7 +124,7 @@ void WebServerWorker::Init() {
                            AppLogger::Logger::Log("Failed to download update", AppLogger::SEVERITY::ERROR);
                        }
                    }
-                   if (mg_match(hm->uri, mg_str("/api/get-config"), NULL)) {
+                   else if (mg_match(hm->uri, mg_str("/api/get-config"), NULL)) {
                        AppLogger::Logger::Log("Trying to get config for webpage editor");
                        std::ifstream file("../config.yml");
                        if (!file) {
@@ -134,7 +134,8 @@ void WebServerWorker::Init() {
                        std::stringstream buffer;
                        buffer << file.rdbuf();
                        mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%s", buffer.str().c_str());
-                   } else if (mg_match(hm->uri, mg_str("/api/save-config"), NULL)) {
+                   }
+                   else if (mg_match(hm->uri, mg_str("/api/save-config"), NULL)) {
                        AppLogger::Logger::Log("Trying save get config from webpage editor");
 
                        // Parse the incoming JSON data
@@ -174,6 +175,17 @@ void WebServerWorker::Init() {
                        auto* server = static_cast<WebServerWorker*>(conn->mgr->userdata);
                        server->_restart_requested = true;
 //                       std::raise(27);
+                   }
+                   else if (mg_match(hm->uri, mg_str("/api/get-fmap"), NULL)){
+                       AppLogger::Logger::Log("Trying to get FMAP file");
+                       std::ifstream file("./fmap/"+MAPLE::GetInstance().GetFMAPFilename());
+                       if (!file) {
+                           mg_http_reply(conn, 500, "Content-Type: text/plain\r\n", "Failed to get FMAP file");
+                           return;
+                       }
+                       std::stringstream buffer;
+                       buffer << file.rdbuf();
+                       mg_http_reply(conn, 200, "Content-Type: text/plain\r\n", "%s", buffer.str().c_str());
                    }
                    else {
                        struct mg_http_serve_opts opts = {.root_dir = "./web/"};
@@ -246,6 +258,8 @@ void WebServerWorker::Execute() {
                     std::vector<double> rr_x;
                     std::vector<double> rr_y;
                     std::vector<double> rr_z;
+                    std::vector<double> rr_roll;
+                    std::vector<double> rr_pitch;
                     std::vector<double> rr_yaw;
 
                     for (const auto& tag_vec: latest_pose.RelativeTags.data){
@@ -255,6 +269,8 @@ void WebServerWorker::Execute() {
                                 rr_x.push_back(t.robot.T[0]);
                                 rr_y.push_back(t.robot.T[1]);
                                 rr_z.push_back(t.robot.T[2]);
+                                rr_roll.push_back(RotationMatrixToRPY(t.robot.R)[0]); // TODO unnecessary matrix creations
+                                rr_pitch.push_back(RotationMatrixToRPY(t.robot.R)[1]);
                                 rr_yaw.push_back(RotationMatrixToRPY(t.robot.R)[2]);
                             }
                         }
@@ -273,6 +289,8 @@ void WebServerWorker::Execute() {
                                  ",\"rob_rel_x\": " + to_string(rr_x[0]) +
                                  ",\"rob_rel_y\": " + to_string(rr_y[0]) +
                                  ",\"rob_rel_z\": " + to_string(rr_z[0]) +
+                                 ",\"rob_rel_roll\": " + to_string(rr_roll[0]) +
+                                 ",\"rob_rel_pitch\": " + to_string(rr_pitch[0]) +
                                  ",\"rob_rel_yaw\": " + to_string(rr_yaw[0]) +
                                  "}";
                     } else{
@@ -282,10 +300,11 @@ void WebServerWorker::Execute() {
                                 ",\"rob_rel_x\": 0"
                                 ",\"rob_rel_y\": 0"
                                 ",\"rob_rel_z\": 0"
+                                ",\"rob_rel_roll\": 0"
+                                ",\"rob_rel_pitch\": 0"
                                 ",\"rob_rel_yaw\": 0"
                                 "}";
                     }
-
                     mg_ws_send(conn, test_data.c_str(), test_data.size(), WEBSOCKET_OP_TEXT);
                 }
             }

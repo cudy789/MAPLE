@@ -50,12 +50,15 @@ public:
                 int unique = item["unique"].get<int>();
                 std::vector<double> transform = item["transform"].get<std::vector<double>>();
 
-                Eigen::Vector3d T_AG{transform[3] + (17.5482504 / 2), transform[7] + (8.0519016 / 2), transform[11]};
+                // 4x4 transform: interpreted as row-major [R|t]; rows 0-2 are rotation, col 3 is translation.
+                // If your .fmap uses column-major (e.g. OpenGL-style), swap to R_AG(i,j)=transform[j*4+i], T_AG=transform[12,13,14].
+                Eigen::Vector3d T_AG{transform[3], transform[7], transform[11]};
                 Eigen::Matrix3d R_AG{{transform[0], transform[1], transform[2]},
                                      {transform[4], transform[5], transform[6]},
                                      {transform[8], transform[9], transform[10]}};
 
                 Pose_single new_pose;
+//                new_pose.R = CreateRotationMatrix(RotationMatrixToRPY(R_AG) + Eigen::Vector3d{0,0,180});
                 new_pose.R = R_AG;
                 new_pose.T = T_AG;
 

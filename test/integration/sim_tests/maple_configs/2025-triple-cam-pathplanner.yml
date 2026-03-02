@@ -20,10 +20,10 @@ cameras:
     cy: 240
 
     # Camera x, y, z location on the robot, in meters
-    translation: [ 0, 0, 1 ]
+    translation: [ 0, 0, 0 ]
 
     # Camera roll, pitch, yaw orientation on the robot, in degrees
-    rotation: [ 0, -60, 0 ]
+    rotation: [ 0, 0, 0 ]
 
     fps: 60.0
     exposure: 1

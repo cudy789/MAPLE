@@ -100,6 +100,12 @@ public:
      */
     std::string GetVersion();
 
+    /**
+     * @brief Get the name of the FMAP file being used for pose calculations.
+     * @return The fmap filename
+     */
+    std::string GetFMAPFilename();
+
 private:
     MAPLE() = default;
 

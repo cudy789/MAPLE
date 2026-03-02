@@ -2,9 +2,12 @@
 
 team_number: -1
 pose_logging: true
+fmap_file: ../fmap/at14_pitched.fmap
+
 cameras:
-  USB_CAM:
-    camera_id: 4
+  FRONT_CENTER:
+    camera_id: 0
+    camera_playback_file: ../test/integration/sim_tests/sim_output/14-pitched-single-cam_front-center.mp4
     rx: 640
     ry: 480
 
@@ -17,10 +20,10 @@ cameras:
     cy: 240
 
     # Camera x, y, z location on the robot, in meters
-    translation: [ 0, 0, 0 ]
+    translation: [ -0.5, 0, 0 ]
 
     # Camera roll, pitch, yaw orientation on the robot, in degrees
     rotation: [ 0, 0, 0 ]
 
-    fps: 30.0
-    exposure: 500
+    fps: 60.0
+    exposure: 1

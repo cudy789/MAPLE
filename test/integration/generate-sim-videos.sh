@@ -27,7 +27,9 @@ cd tools;
 NUM_FILES=$(ls ../test/integration/sim_tests/sim_configs/*.yml -1 | wc -l)
 FILE_COUNT=1
 set -e  # exit on error
-for t in ../test/integration/sim_tests/sim_configs/*.yml; do
+#for t in ../test/integration/sim_tests/sim_configs/*.yml; do
+#for t in ../test/integration/sim_tests/sim_configs/14-zeroed-single-cam-simple.yml; do
+for t in ../test/integration/sim_tests/sim_configs/14-pitched-single-cam.yml; do
 #for t in ../test/integration/sim_tests/sim_configs/2025-triple-cam-pathplanner.yml; do
  # Generate videos
   echo "Kill any existing maple-integration containers..."

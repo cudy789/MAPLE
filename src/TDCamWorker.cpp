@@ -186,7 +186,7 @@ void TDCamWorker::Execute() {
         if (!_c_params.camera_playback_file.empty()){
             if (errno != EAGAIN){
                 AppLogger::Logger::Log("Reached the end of the video file " + _c_params.camera_playback_file + ", stopping thread.");
-                Stop(true);
+                Stop(false);
             }
         } else{
             AppLogger::Logger::Log("Error getting img from camera " + _c_params.name, AppLogger::SEVERITY::WARNING);

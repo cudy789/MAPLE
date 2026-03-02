@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "Eigen"
+#include "Eigen/Geometry"
 
 extern "C" {
 #include "apriltag.h"
@@ -84,11 +85,11 @@ inline Eigen::MatrixBase<Derived>& Rad2Deg(Eigen::MatrixBase<Derived>& matrix) {
 }
 
 /**
- * @brief Templated function to convert a raw C++ array to an Eigen matrix. Column major indexing.
+ * @brief Templated function to convert a raw C++ array to an Eigen matrix. Row-major indexing.
  * @tparam Scalar Array data type.
  * @tparam Rows Number of rows.
  * @tparam Cols Number of columns.
- * @param array The raw array.
+ * @param array The raw array (row-major: index = row*Cols + col). Matches apriltag matd_t layout.
  * @return The new Eigen matrix.
  */
 template <typename Scalar, int Rows, int Cols>
@@ -130,7 +131,12 @@ std::ostream& operator<<(std::ostream& os, const Eigen::MatrixBase<Derived>& mat
 }
 
 /**
- * @brief Create a rotation matrix from roll, pitch, and yaw in degrees. Uses the 3-2-1 conversion, i.e. apply yaw, then pitch, then roll.
+ * @brief Create a rotation matrix from roll, pitch, and yaw in degrees.
+ * Uses the 3-2-1 conversion ZYX (apply roll, then pitch, then yaw).
+ *
+ * Convention note (robot frame X forward, Y left, Z up):
+ * With a strict right-hand rotation about +Y, positive pitch would tip the nose down.
+ * This project defines positive pitch as "nose up", so the internal +Y rotation is negated.
  * @param V The ordered vector of roll, pitch, and yaw in degrees.
  * @return The 3x3 rotation matrix describing the orientation.
  */
@@ -139,60 +145,73 @@ inline Eigen::Matrix3d CreateRotationMatrix(const Eigen::Vector3d& V) {
     double pitch = Deg2Rad(V(1));
     double yaw = Deg2Rad(V(2));
 
-    Eigen::Matrix3d R_x;
-
-    R_x << 1, 0, 0,
-            0, cos(roll), -sin(roll),
-            0, sin(roll), cos(roll);
-
-    // Rotation matrix around the Y-axis (pitch)
-    Eigen::Matrix3d R_y;
-    R_y << cos(pitch), 0, sin(pitch),
-            0, 1, 0,
-            -sin(pitch), 0, cos(pitch);
-
-    // Rotation matrix around the Z-axis (yaw)
-    Eigen::Matrix3d R_z;
-    R_z << cos(yaw), -sin(yaw), 0,
-            sin(yaw), cos(yaw), 0,
-            0, 0, 1;
-
-    // Combined rotation matrix
-    Eigen::Matrix3d R = R_z * R_y * R_x;
-
+    Eigen::AngleAxisd Rz(yaw, Eigen::Vector3d::UnitZ());
+    Eigen::AngleAxisd Ry(-pitch, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd Rx(roll, Eigen::Vector3d::UnitX());
+    // Order: R = Rz * Ry * Rx (apply Rx first, then Ry, then Rz)
+    Eigen::Matrix3d R = (Rz * Ry * Rx).toRotationMatrix();
     return R;
 }
 
 
 /**
- * @brief Create a roll, pitch, yaw vector in degrees from a given rotation matrix. Handle gimbal lock when cos(pitch)
- * is close to zero.
+ * @brief Normalize Euler angles (roll, pitch, yaw) to prefer the representation with
+ * roll and pitch near 0. For ZYX with R = Rz(yaw)*Ry(-pitch)*Rx(roll), the equivalence
+ * is (roll, pitch, yaw) <-> (roll+180, 180+pitch, yaw+180). Pick the one that minimizes
+ * max(|roll|, |pitch|) to avoid the ±180 flip when the physical orientation is upright.
+ */
+inline Eigen::Vector3d NormalizeRPY(double roll, double pitch, double yaw) {
+    auto wrap = [](double x) {
+        while (x > 180.0) x -= 360.0;
+        while (x < -180.0) x += 360.0;
+        return x;
+    };
+    double r0 = wrap(roll), p0 = wrap(pitch), y0 = wrap(yaw);
+    double r1 = wrap(roll + 180.0), p1 = wrap(180.0 + pitch), y1 = wrap(yaw + 180.0);
+    double score0 = std::max(std::abs(r0), std::abs(p0));
+    double score1 = std::max(std::abs(r1), std::abs(p1));
+    return (score0 <= score1) ? Eigen::Vector3d{r0, p0, y0} : Eigen::Vector3d{r1, p1, y1};
+}
+
+/**
+ * @brief Create a roll, pitch, yaw vector in degrees from a given rotation matrix.
+ * 3-2-1 (Z Y X) conversion in the intrinsic frame. R = Rz(yaw) * Ry(-pitch) * Rx(roll)
+ * Returns the normalized representation (roll and pitch near 0 when equivalent).
  * @param R The 3x3 rotation matrix describing the orientation.
  * @return The ordered vector of roll, pitch, and yaw in degrees.
  */
- inline Eigen::Vector3d RotationMatrixToRPY(const Eigen::Matrix3d& R) {
-    // Calculate pitch
-    double roll, pitch, yaw;
-    Eigen::Vector3d rpy;
-    pitch = asin(-R(2, 0));
+inline Eigen::Vector3d RotationMatrixToRPY(const Eigen::Matrix3d& R)
+{
+    Eigen::Vector3d angles = R.eulerAngles(2, 1, 0); // Z Y X
 
-    // Handle gimbal lock case where cos(pitch) is near zero
-    if (abs(cos(pitch)) > 1e-6) {
-        roll = atan2(R(2, 1), R(2, 2));
-        yaw = atan2(R(1, 0), R(0, 0));
-    } else {
-        // Gimbal lock, we have to set one of the angles to zero
-        roll = 0.0;
-        yaw = atan2(-R(0, 1), R(1, 1));
-    }
+    double roll  = Rad2Deg(angles[2]);
+    double pitch = -Rad2Deg(angles[1]);
+    double yaw   = Rad2Deg(angles[0]);
 
-    // Convert to degrees
-    roll = Rad2Deg(roll);
-    pitch = Rad2Deg(pitch);
-    yaw = Rad2Deg(yaw);
-    rpy = {roll, pitch, yaw};
-    return rpy;
+    return NormalizeRPY(roll, pitch, yaw);
 }
+
+// Construct homogeneous 4x4 from Rotation matrix and translation vector
+inline Eigen::Matrix4d makeTransform(const Eigen::Matrix3d &R, const Eigen::Vector3d &t) {
+    Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+    T.block<3,3>(0,0) = R;
+    T.block<3,1>(0,3) = t;
+    return T;
+}
+
+// Inverse of SE(3) homogeneous matrix (works for rigid transforms).
+inline Eigen::Matrix4d invertTransform(const Eigen::Matrix4d &T) {
+    Eigen::Matrix3d R = T.block<3,3>(0,0);
+    Eigen::Vector3d t = T.block<3,1>(0,3);
+    Eigen::Matrix4d Tinv = Eigen::Matrix4d::Identity();
+    Tinv.block<3,3>(0,0) = R.transpose();
+    Tinv.block<3,1>(0,3) = -R.transpose() * t;
+    return Tinv;
+}
+
+// Extract rotation (as Eigen::Matrix3d) and translation from T
+inline Eigen::Matrix3d getRot(const Eigen::Matrix4d &T) { return T.block<3,3>(0,0); }
+inline Eigen::Vector3d getTrans(const Eigen::Matrix4d &T) { return T.block<3,1>(0,3); }
 
 /**
  * @brief Create a roll, pitch, yaw vector in degrees from a given rotation matrix. The matd_t datatype is used in the

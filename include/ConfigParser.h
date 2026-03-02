@@ -68,11 +68,14 @@ struct CamParams{
      */
     int exposure;
 
+    // Camera extrinsics: rotation (roll,pitch,yaw degrees) and translation (x,y,z) in robot frame.
+    // [0,0,0,0,0,0] means camera is aligned with robot frame (forward = +x, left = +y, up = +z).
+    // T_camera_robot = position of camera origin in robot frame (meters). E.g. (-0.5, 0, 0) = camera 0.5 m behind robot.
     Eigen::Matrix3d R_camera_robot {{1, 0, 0},
                                     {0, 1, 0},
-                                    {0, 0, 1}}; // Converts from AT frame to robot frame AND includes 90* rotation to align camera Z axis with robot Z axis TODO update note properly
+                                    {0, 0, 1}};
 
-    Eigen::Vector3d T_camera_robot {0,0,0}; // No displacement relative to robot geometric center
+    Eigen::Vector3d T_camera_robot {0,0,0}; // Camera position in robot frame (meters).
     /**
      * @brief Apriltag detector parameters
      */
@@ -193,11 +196,10 @@ public:
                     int c_exposure = it->second["exposure"].as<int>();
                     if (it->second["camera_playback_file"]) camera_playback_file = it->second["camera_playback_file"].as<std::string>();
 
-                    Eigen::Vector3d c_translation = Eigen::Vector3d(it->second["translation"].as<std::vector<double>>().data());
-                    Eigen::Vector3d T_total = {c_translation[1], -c_translation[0], c_translation[2]};
+                    Eigen::Vector3d T_total = Eigen::Vector3d(it->second["translation"].as<std::vector<double>>().data());
 
                     Eigen::Vector3d c_rotation = Eigen::Vector3d(it->second["rotation"].as<std::vector<double>>().data());
-                    Eigen::Matrix3d R_total = CreateRotationMatrix({-c_rotation[0], c_rotation[1], -c_rotation[2]-90});
+                    Eigen::Matrix3d R_total = CreateRotationMatrix(c_rotation);
 
                     cam_p.emplace_back(CamParams{.name=c_name, .camera_id=c_id, .camera_playback_file=camera_playback_file,
                                                  .rx=c_rx, .ry=c_ry, .calibrate=c_calibrate,

@@ -56,14 +56,21 @@ def populate_apriltags(fmap_file):
     with open(fmap_file, "r") as f:
         fmap_data = json.load(f)
 
+    offset_x = 0
+    offset_y = 0
+    if 'fieldlength' in fmap_data:
+        offset_x = fmap_data['fieldlength'] / 2.0
+        offset_y = fmap_data['fieldwidth'] / 2.0
+
+
     for tag in fmap_data["fiducials"]:
         id = tag["id"]
         transform = np.array(tag["transform"]).reshape((4,4))
         translation = transform[:3,-1].reshape(-1)
         rotation = R.from_matrix(transform[:3, :3]).as_matrix()
 
-        translation[0] += (17.5482504 / 2)
-        translation[1] += (8.0519016 / 2)
+        translation[0] += offset_x
+        translation[1] += offset_y
 
         b_tag = p.loadURDF("./at_objs/at.urdf", translation, R.from_matrix(rotation).as_quat())
 
@@ -90,7 +97,7 @@ def render_camera(position, cam_extrinsic):
     rotation_matrix = rotation_matrix @ extrinsic_rotation.as_matrix()  #TODO these rotations are dependent, i.e. pitching and yawing induces a roll
 
     # Camera up vector and forward vector in local frame
-    camera_forward_local = np.array([0, 1, 0])  # Y-axis is forward
+    camera_forward_local = np.array([0, 1, 0])  # Y-axis is forward # TODO the x value that is detected is negative to what gets generated from the config yaml???
     camera_up_local = np.array([0, 0, 1])       # Z-axis is up
 
     # Transform to global frame
@@ -99,7 +106,7 @@ def render_camera(position, cam_extrinsic):
 
     camera_position = np.array([x, y, z])
     e_x, e_y, e_z = cam_extrinsic[:3]
-    camera_position += [e_y, e_x, e_z]
+    camera_position += [-e_x, -e_y, e_z]
 
     # Calculate camera target and up vector
 

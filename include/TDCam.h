@@ -77,6 +77,15 @@ public:
      * @param img The image to run the Apriltag detector on.
      * @return All possible tag detections found in the image.
      */
+
+    /**
+     * @brief TODO
+     * @param T_ct
+     * @param R_ct
+     * @return
+     */
+    Pose_single CameraPoseToGlobal(const Eigen::Vector3d& T_ct, const Eigen::Matrix3d& R_ct, const Eigen::Vector3d& T_wt, const Eigen::Matrix3d& R_wt);
+
     TagArray GetTagsFromImage(const cv::Mat& img);
     /**
      * @brief Given an image and its corresponding tag detections, draw a bounding box around the detected tags in the frame
